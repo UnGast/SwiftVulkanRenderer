@@ -54,6 +54,12 @@ let window = try Window(properties: props,
 var event = Event()
 var quit = false
 
+guard let surface = window.surface as? VLKWindowSurface else {
+  fatalError("incorrect surface")
+}
+
+let renderer = try VulkanRenderer(instance: surface.instance, surface: surface.surface)
+
 while !quit {
     Events.pumpEvents()
 

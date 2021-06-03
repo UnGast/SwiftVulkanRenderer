@@ -4,9 +4,71 @@ import Vulkan
 
 public class VulkanRenderer {
   let instance: VkInstance
+  let surface: VkSurfaceKHR
 
-  public init(instance: VkInstance) {
+  @Deferred var physicalDevice: VkPhysicalDevice
+  @Deferred var queueFamilyIndex: UInt32
+  @Deferred var device: VkDevice
+
+  public init(instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.instance = instance
+    self.surface = surface
+
+    try self.pickPhysicalDevice()
+
+    try self.getQueueFamilyIndex()
+
+    try self.createDevice()
+  }
+
+  func pickPhysicalDevice() throws {
+    var deviceCount: UInt32 = 0
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nil)
+    var devices = Array(repeating: Optional<VkPhysicalDevice>.none, count: Int(deviceCount))
+    vkEnumeratePhysicalDevices(instance, &deviceCount, &devices)
+    self.physicalDevice = devices[0]!
+  }
+
+  func getQueueFamilyIndex() throws {
+    /*var queueFamilyIndex: UInt32?
+    for properties in physicalDevice.queueFamilyProperties {
+      if try! physicalDevice.hasSurfaceSupport(
+        for: properties,
+        surface:
+          surface
+      ) && properties.queueCount & QueueFamilyProperties.Flags.graphicsBit.rawValue == QueueFamilyProperties.Flags.graphicsBit.rawValue {
+        queueFamilyIndex = properties.index
+      }
+    }
+
+    guard let queueFamilyIndexUnwrapped = queueFamilyIndex else {
+      throw VulkanRendererError.noSuitableQueueFamily
+    }*/
+
+    self.queueFamilyIndex = 0 // TODO: GENERALIZE
+    //self.queueFamilyIndex = queueFamilyIndexUnwrapped
+  }
+
+  func createDevice() throws {
+    var queuePriorities = [Float(1.0)]
+    let queueCreateInfo = VkDeviceQueueCreateInfo(
+      sType: VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      queueFamilyIndex: queueFamilyIndex,
+      queueCount: 1,
+      pQueuePriorities: queuePriorities)
+
+    var physicalDeviceFeatures = VkPhysicalDeviceFeatures()
+    physicalDeviceFeatures.samplerAnisotropy = 1
+
+    /*self.device = try physicalDevice.createDevice(
+      createInfo: DeviceCreateInfo(
+        flags: .none,
+        queueCreateInfos: [queueCreateInfo],
+        enabledLayers: [],
+        enabledExtensions: ["VK_KHR_swapchain"],
+        enabledFeatures: physicalDeviceFeatures))*/
   }
 }
 
