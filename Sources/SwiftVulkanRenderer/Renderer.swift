@@ -9,16 +9,25 @@ public class VulkanRenderer {
   @Deferred var physicalDevice: VkPhysicalDevice
   @Deferred var queueFamilyIndex: UInt32
   @Deferred var device: VkDevice
+  @Deferred var queue: VkQueue
+  @Deferred var swapchain: VkSwapchainKHR
+  @Deferred var swapchainImages: [VkImage]
 
   public init(instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.instance = instance
     self.surface = surface
 
-    try self.pickPhysicalDevice()
+    try pickPhysicalDevice()
 
-    try self.getQueueFamilyIndex()
+    try getQueueFamilyIndex()
 
-    try self.createDevice()
+    try createDevice()
+
+    try createQueue()
+
+    try createSwapchain()
+
+    try getSwapchainImages()
   }
 
   func pickPhysicalDevice() throws {
@@ -51,7 +60,7 @@ public class VulkanRenderer {
 
   func createDevice() throws {
     var queuePriorities = [Float(1.0)]
-    let queueCreateInfo = VkDeviceQueueCreateInfo(
+    var queueCreateInfo = VkDeviceQueueCreateInfo(
       sType: VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
       pNext: nil,
       flags: 0,
@@ -62,6 +71,25 @@ public class VulkanRenderer {
     var physicalDeviceFeatures = VkPhysicalDeviceFeatures()
     physicalDeviceFeatures.samplerAnisotropy = 1
 
+    let extensions = [UnsafePointer(strdup("VK_KHR_swapchain"))]
+
+    var deviceCreateInfo = VkDeviceCreateInfo(
+      sType: VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      queueCreateInfoCount: 1,
+      pQueueCreateInfos: &queueCreateInfo,
+      enabledLayerCount: 0,
+      ppEnabledLayerNames: nil,
+      enabledExtensionCount: UInt32(extensions.count),
+      ppEnabledExtensionNames: extensions,
+      pEnabledFeatures: nil
+    )
+
+    var device: VkDevice? = nil
+    vkCreateDevice(physicalDevice, &deviceCreateInfo, nil, &device)
+    self.device = device!
+
     /*self.device = try physicalDevice.createDevice(
       createInfo: DeviceCreateInfo(
         flags: .none,
@@ -69,6 +97,97 @@ public class VulkanRenderer {
         enabledLayers: [],
         enabledExtensions: ["VK_KHR_swapchain"],
         enabledFeatures: physicalDeviceFeatures))*/
+  }
+
+  func createQueue() throws {
+    var queues = [VkQueue?](repeating: VkQueue(bitPattern: 0), count: 1)
+    vkGetDeviceQueue(device, UInt32(queueFamilyIndex), 0, &queues)
+    self.queue = queues[0]!
+  }
+
+  func createSwapchain() throws {
+    var capabilities = VkSurfaceCapabilitiesKHR()
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities)
+    let surfaceFormat = try selectFormat()
+
+    var compositeAlpha: VkCompositeAlphaFlagBitsKHR = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR
+    let desiredCompositeAlpha =
+      [compositeAlpha, VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR]
+
+    for desired in desiredCompositeAlpha {
+      if capabilities.supportedCompositeAlpha & desired.rawValue == desired.rawValue {
+        compositeAlpha = desired
+        break
+      }
+    }
+
+    var swapchainCreateInfo = VkSwapchainCreateInfoKHR(
+      sType: VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      pNext: nil,
+      flags: 0,
+      surface: surface,
+      minImageCount: capabilities.minImageCount + 1,
+      imageFormat: surfaceFormat.format,
+      imageColorSpace: surfaceFormat.colorSpace,
+      imageExtent: capabilities.maxImageExtent,
+      imageArrayLayers: 1,
+      imageUsage: VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT.rawValue,
+      imageSharingMode: VK_SHARING_MODE_EXCLUSIVE,
+      queueFamilyIndexCount: 0,
+      pQueueFamilyIndices: [],
+      preTransform: capabilities.currentTransform,
+      compositeAlpha: compositeAlpha,
+      presentMode: VK_PRESENT_MODE_IMMEDIATE_KHR,
+      clipped: 1,
+      oldSwapchain: nil
+    )
+
+    var swapchain: VkSwapchainKHR? = nil
+    vkCreateSwapchainKHR(device, &swapchainCreateInfo, nil, &swapchain)
+    self.swapchain = swapchain!
+
+    /*self.swapchain = try Swapchain.create(
+      inDevice: device,
+      createInfo: SwapchainCreateInfo(
+        flags: .none,
+        surface: surface,
+        minImageCount: capabilities.minImageCount + 1,
+        imageFormat: surfaceFormat.format,
+        imageColorSpace: surfaceFormat.colorSpace,
+        imageExtent: capabilities.maxImageExtent,
+        imageArrayLayers: 1,
+        imageUsage: .colorAttachment,
+        imageSharingMode: .exclusive,
+        queueFamilyIndices: [],
+        preTransform: capabilities.currentTransform,
+        compositeAlpha: compositeAlpha,
+        presentMode: .immediate,
+        clipped: true,
+        oldSwapchain: nil
+      ))
+      self.swapchainImageFormat = surfaceFormat.format
+      self.swapchainExtent = capabilities.minImageExtent
+
+    self.swapchainImages = try self.swapchain.getSwapchainImages()*/
+  }
+
+  func selectFormat() throws -> VkSurfaceFormatKHR {
+    var formatsCount: UInt32 = 0
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, nil)
+    var formats = Array(repeating: VkSurfaceFormatKHR(), count: Int(formatsCount))
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, &formats)
+
+    for format in formats {
+      if format.format == VK_FORMAT_B8G8R8A8_SRGB {
+        return format
+      }
+    }
+
+    return formats[0]
+  }
+
+  func getSwapchainImages() {
+
   }
 }
 
