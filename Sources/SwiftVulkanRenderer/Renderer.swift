@@ -15,6 +15,8 @@ public class VulkanRenderer {
   @Deferred var swapchainExtent: VkExtent2D
   @Deferred var swapchainImages: [VkImage]
   @Deferred var imageViews: [VkImageView]
+  @Deferred var renderPass: VkRenderPass
+  @Deferred var graphicsPipeline: VkPipeline
 
   public init(instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.instance = instance
@@ -33,6 +35,10 @@ public class VulkanRenderer {
     try getSwapchainImages()
 
     try createImageViews()
+
+    try createRenderPass()
+
+    try createGraphicsPipeline()
   }
 
   func pickPhysicalDevice() throws {
@@ -224,6 +230,345 @@ public class VulkanRenderer {
     self.imageViews = try swapchainImages.map {
       try createImageView(image: $0, format: swapchainImageFormat, aspectFlags: VK_IMAGE_ASPECT_COLOR_BIT)
     }
+  }
+
+  func createRenderPass() throws {
+    var colorAttachment = VkAttachmentDescription(
+      flags: 0,
+      format: swapchainImageFormat,
+      samples: VK_SAMPLE_COUNT_1_BIT,
+      loadOp: VK_ATTACHMENT_LOAD_OP_CLEAR,
+      storeOp: VK_ATTACHMENT_STORE_OP_STORE,
+      stencilLoadOp: VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      stencilStoreOp: VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      initialLayout: VK_IMAGE_LAYOUT_UNDEFINED,
+      finalLayout: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    )
+  
+    var colorAttachmentRef = VkAttachmentReference(
+      attachment: 0, layout: VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    )
+
+    var depthAttachment = VkAttachmentDescription(
+      flags: 0,
+      // maybe should choose this with function as well (like for createDepthImage)
+      format: VK_FORMAT_D32_SFLOAT,
+      samples: VK_SAMPLE_COUNT_1_BIT,
+      loadOp: VK_ATTACHMENT_LOAD_OP_CLEAR,
+      storeOp: VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      stencilLoadOp: VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      stencilStoreOp: VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      initialLayout: VK_IMAGE_LAYOUT_UNDEFINED,
+      finalLayout: VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    )
+
+    var depthAttachmentRef = VkAttachmentReference(
+      attachment: 1,
+      layout: VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    )
+
+    var subpass = VkSubpassDescription(
+      flags: 0,
+      pipelineBindPoint: VK_PIPELINE_BIND_POINT_GRAPHICS,
+      inputAttachmentCount: 0,
+      pInputAttachments: nil,
+      colorAttachmentCount: 1,
+      pColorAttachments: &colorAttachmentRef,
+      pResolveAttachments: nil,
+      pDepthStencilAttachment: &depthAttachmentRef,
+      preserveAttachmentCount: 0,
+      pPreserveAttachments: nil
+    )
+
+    var dependency = VkSubpassDependency(
+      srcSubpass: VK_SUBPASS_EXTERNAL,
+      dstSubpass: 0,
+      srcStageMask: VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT.rawValue | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT.rawValue,
+      dstStageMask: VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT.rawValue | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT.rawValue,
+      srcAccessMask: 0,
+      dstAccessMask: VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT.rawValue | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT.rawValue,
+      dependencyFlags: 0
+    )
+
+    var attachments = [colorAttachment, depthAttachment]
+    var renderPassInfo = VkRenderPassCreateInfo(
+      sType: VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      attachmentCount: 2,
+      pAttachments: &attachments,
+      subpassCount: 1,
+      pSubpasses: &subpass,
+      dependencyCount: 1,
+      pDependencies: &dependency
+    )
+
+    var renderPass: VkRenderPass? = nil
+    vkCreateRenderPass(device, &renderPassInfo, nil, &renderPass)
+    self.renderPass = renderPass!
+  }
+
+  func createGraphicsPipeline() throws {
+    let vertexShaderCode = try Data(contentsOf: Bundle.module.url(forResource: "vertex", withExtension: "spv")!)
+
+    var vertexShaderModuleInfo = vertexShaderCode.withUnsafeBytes {
+      VkShaderModuleCreateInfo(
+        sType: VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        pNext: nil,
+        flags: 0,
+        codeSize: vertexShaderCode.count,
+        pCode: $0
+      )
+    }
+
+    var vertexShaderModule: VkShaderModule? = nil
+    vkCreateShaderModule(device, &vertexShaderModuleInfo, nil, &vertexShaderModule)
+
+    var vertexShaderStageInfo = VkPipelineShaderStageCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      stage: VK_SHADER_STAGE_VERTEX_BIT,
+      module: vertexShaderModule,
+      pName: strdup("main"),
+      pSpecializationInfo: nil
+    )
+
+    var shaderStageInfos = [vertexShaderStageInfo]
+
+    /*let vertexShaderCode: Data = try Data(contentsOf: Bundle.module.url(forResource: "vertex", withExtension: "spv")!)
+    let fragmentShaderCode: Data = try Data(contentsOf: Bundle.module.url(forResource: "fragment", withExtension: "spv")!)
+
+    let vertexShaderModule = try ShaderModule(device: device, createInfo: ShaderModuleCreateInfo(
+      code: vertexShaderCode
+    ))
+    let vertexShaderStageCreateInfo = PipelineShaderStageCreateInfo(
+      flags: .none,
+      stage: .vertex,
+      module: vertexShaderModule,
+      pName: "main",
+      specializationInfo: nil)
+
+    let fragmentShaderModule = try ShaderModule(device: device, createInfo: ShaderModuleCreateInfo(
+      code: fragmentShaderCode
+    ))
+    let fragmentShaderStageCreateInfo = PipelineShaderStageCreateInfo(
+      flags: .none,
+      stage: .fragment,
+      module: fragmentShaderModule,
+      pName: "main",
+      specializationInfo: nil)
+
+    let shaderStages = [vertexShaderStageCreateInfo, fragmentShaderStageCreateInfo]
+
+    let vertexInputBindingDescription = Vertex.inputBindingDescription
+    let vertexInputAttributeDescriptions = Vertex.inputAttributeDescriptions
+
+    let vertexInputInfo = PipelineVertexInputStateCreateInfo(
+      vertexBindingDescriptions: [vertexInputBindingDescription],
+      vertexAttributeDescriptions: vertexInputAttributeDescriptions
+    )
+
+    let inputAssembly = PipelineInputAssemblyStateCreateInfo(topology: .triangleList, primitiveRestartEnable: false)
+
+    let viewport = Viewport(x: 0, y: 0, width: Float(swapchainExtent.width), height: Float(swapchainExtent.height), minDepth: 0, maxDepth: 1)
+
+    let scissor = Rect2D(offset: Offset2D(x: 0, y: 0), extent: swapchainExtent)
+
+    let viewportState = PipelineViewportStateCreateInfo(
+      viewports: [viewport],
+      scissors: [scissor]
+    )
+
+    let rasterizer = PipelineRasterizationStateCreateInfo(
+      depthClampEnable: false,
+      rasterizerDiscardEnable: false,
+      polygonMode: .fill,
+      cullMode: .none,
+      frontFace: .clockwise,
+      depthBiasEnable: false,
+      depthBiasConstantFactor: 0,
+      depthBiasClamp: 0,
+      depthBiasSlopeFactor: 0,
+      lineWidth: 1
+    )
+
+    let multisampling = PipelineMultisampleStateCreateInfo(
+      rasterizationSamples: ._1,
+      sampleShadingEnable: false,
+      minSampleShading: 1,
+      sampleMask: nil, 
+      alphaToCoverageEnable: false,
+      alphaToOneEnable: false
+    )
+
+    let colorBlendAttachment = PipelineColorBlendAttachmentState(
+      blendEnable: true,
+      srcColorBlendFactor: .srcAlpha,
+      dstColorBlendFactor: .oneMinusSrcAlpha,
+      colorBlendOp: .add,
+      srcAlphaBlendFactor: .srcAlpha,
+      dstAlphaBlendFactor: .oneMinusSrcAlpha,
+      alphaBlendOp: .add,
+      colorWriteMask: [.r, .g, .b, .a]
+    )
+
+    let colorBlending = PipelineColorBlendStateCreateInfo(
+      logicOpEnable: false,
+      logicOp: .copy,
+      attachments: [colorBlendAttachment],
+      blendConstants: (0, 0, 0, 0)
+    )
+
+    let dynamicStates = [DynamicState.viewport, DynamicState.lineWidth]
+
+    let dynamicState = PipelineDynamicStateCreateInfo(
+      dynamicStates: dynamicStates
+    )
+
+    let pushConstantRange = PushConstantRange(
+      stageFlags: .vertex,
+      offset: 0,
+      size: UInt32(MemoryLayout<Float>.size * 17)
+    )
+
+    let pipelineLayoutInfo = PipelineLayoutCreateInfo(
+      flags: .none,
+      setLayouts: [descriptorSetLayout, materialSystem.descriptorSetLayout],
+      pushConstantRanges: [pushConstantRange])
+
+    let pipelineLayout = try PipelineLayout.create(device: device, createInfo: pipelineLayoutInfo)
+
+    let pipelineInfo = GraphicsPipelineCreateInfo(
+      flags: [],
+      stages: shaderStages,
+      vertexInputState: vertexInputInfo,
+      inputAssemblyState: inputAssembly,
+      tessellationState: nil,
+      viewportState: viewportState,
+      rasterizationState: rasterizer,
+      multisampleState: multisampling,
+      depthStencilState: PipelineDepthStencilStateCreateInfo(
+        depthTestEnable: true,
+        depthWriteEnable: true,
+        depthCompareOp: .less,
+        depthBoundsTestEnable: false,
+        stencilTestEnable: false,
+        front: .dontCare,
+        back: .dontCare, 
+        minDepthBounds: 0,
+        maxDepthBounds: 1
+      ),
+      colorBlendState: colorBlending,
+      dynamicState: nil,
+      layout: pipelineLayout,
+      renderPass: renderPass,
+      subpass: 0,
+      basePipelineHandle: nil,
+      basePipelineIndex: 0 
+    )
+    */
+
+    var inputAssemblyStateInfo = VkPipelineInputAssemblyStateCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      topology: VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+      primitiveRestartEnable: 0
+    )
+
+    var viewport = VkViewport(x: 0, y: 0, width: Float(swapchainExtent.width), height: Float(swapchainExtent.height), minDepth: 0, maxDepth: 1)
+
+    var scissor = VkRect2D(offset: VkOffset2D(x: 0, y: 0), extent: swapchainExtent)
+
+    var viewportStateInfo = VkPipelineViewportStateCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      viewportCount: 1,
+      pViewports: &viewport,
+      scissorCount: 1,
+      pScissors: &scissor
+    )
+
+    var rasterizationStateInfo = VkPipelineRasterizationStateCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      depthClampEnable: 0,
+      rasterizerDiscardEnable: 0,
+      polygonMode: VK_POLYGON_MODE_FILL,
+      cullMode: VK_CULL_MODE_NONE.rawValue,
+      frontFace: VK_FRONT_FACE_CLOCKWISE,
+      depthBiasEnable: 0,
+      depthBiasConstantFactor: 0,
+      depthBiasClamp: 0,
+      depthBiasSlopeFactor: 0,
+      lineWidth: 1
+    )
+
+   var multisampleStateInfo = VkPipelineMultisampleStateCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      rasterizationSamples: VK_SAMPLE_COUNT_1_BIT,
+      sampleShadingEnable: 0,
+      minSampleShading: 1,
+      pSampleMask: nil, 
+      alphaToCoverageEnable: 0,
+      alphaToOneEnable: 0
+    )
+    
+    var pipelineLayoutInfo = VkPipelineLayoutCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      setLayoutCount: 0,
+      pSetLayouts: nil,
+      pushConstantRangeCount: 0,
+      pPushConstantRanges: nil
+    )
+
+    var pipelineLayoutOpt: VkPipelineLayout? = nil
+    vkCreatePipelineLayout(device, &pipelineLayoutInfo, nil, &pipelineLayoutOpt)
+
+    guard let pipelineLayout = pipelineLayoutOpt else {
+      fatalError("could not create pipeline layout")
+    }
+
+    var pipelineInfo = VkGraphicsPipelineCreateInfo(
+      sType: VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      stageCount: UInt32(shaderStageInfos.count),
+      pStages: &shaderStageInfos,
+      pVertexInputState: nil,
+      pInputAssemblyState: &inputAssemblyStateInfo,
+      pTessellationState: nil,
+      pViewportState: &viewportStateInfo,
+      pRasterizationState: &rasterizationStateInfo,
+      pMultisampleState: &multisampleStateInfo,
+      pDepthStencilState: nil,
+      pColorBlendState: nil,
+      pDynamicState: nil,
+      layout: pipelineLayout,
+      renderPass: renderPass,
+      subpass: 0,
+      basePipelineHandle: nil,
+      basePipelineIndex: 0
+    )
+
+    var pipeline: VkPipeline? = nil
+    vkCreateGraphicsPipelines(device, nil, 1, &pipelineInfo, nil, &pipeline)
+
+    self.graphicsPipeline = pipeline!
+    
+    /*
+
+    let graphicsPipeline = try Pipeline(device: device, createInfo: pipelineInfo)
+
+    self.graphicsPipeline = graphicsPipeline
+    self.pipelineLayout = pipelineLayout*/
   }
 }
 
