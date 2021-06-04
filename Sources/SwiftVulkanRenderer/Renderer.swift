@@ -11,7 +11,10 @@ public class VulkanRenderer {
   @Deferred var device: VkDevice
   @Deferred var queue: VkQueue
   @Deferred var swapchain: VkSwapchainKHR
+  @Deferred var swapchainImageFormat: VkFormat
+  @Deferred var swapchainExtent: VkExtent2D
   @Deferred var swapchainImages: [VkImage]
+  @Deferred var imageViews: [VkImageView]
 
   public init(instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.instance = instance
@@ -28,6 +31,8 @@ public class VulkanRenderer {
     try createSwapchain()
 
     try getSwapchainImages()
+
+    try createImageViews()
   }
 
   func pickPhysicalDevice() throws {
@@ -89,14 +94,6 @@ public class VulkanRenderer {
     var device: VkDevice? = nil
     vkCreateDevice(physicalDevice, &deviceCreateInfo, nil, &device)
     self.device = device!
-
-    /*self.device = try physicalDevice.createDevice(
-      createInfo: DeviceCreateInfo(
-        flags: .none,
-        queueCreateInfos: [queueCreateInfo],
-        enabledLayers: [],
-        enabledExtensions: ["VK_KHR_swapchain"],
-        enabledFeatures: physicalDeviceFeatures))*/
   }
 
   func createQueue() throws {
@@ -145,6 +142,8 @@ public class VulkanRenderer {
     var swapchain: VkSwapchainKHR? = nil
     vkCreateSwapchainKHR(device, &swapchainCreateInfo, nil, &swapchain)
     self.swapchain = swapchain!
+    self.swapchainImageFormat = surfaceFormat.format
+    self.swapchainExtent = capabilities.minImageExtent
 
     /*self.swapchain = try Swapchain.create(
       inDevice: device,
@@ -165,8 +164,6 @@ public class VulkanRenderer {
         clipped: true,
         oldSwapchain: nil
       ))
-      self.swapchainImageFormat = surfaceFormat.format
-      self.swapchainExtent = capabilities.minImageExtent
 
     self.swapchainImages = try self.swapchain.getSwapchainImages()*/
   }
@@ -186,8 +183,47 @@ public class VulkanRenderer {
     return formats[0]
   }
 
-  func getSwapchainImages() {
+  func getSwapchainImages() throws {
+    var count: UInt32 = 0
+    vkGetSwapchainImagesKHR(device, swapchain, &count, nil)
+    var images = [VkImage?](repeating: VkImage(bitPattern: 0), count: Int(count))
+    vkGetSwapchainImagesKHR(device, swapchain, &count, &images)
+    self.swapchainImages = images.map { $0! }
+  }
 
+  func createImageView(image: VkImage, format: VkFormat, aspectFlags: VkImageAspectFlagBits) throws -> VkImageView {
+    var createInfo = VkImageViewCreateInfo(
+      sType: VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      image: image,
+      viewType: VK_IMAGE_VIEW_TYPE_2D,
+      format: format,
+      components: VkComponentMapping(
+        r: VK_COMPONENT_SWIZZLE_IDENTITY,
+        g: VK_COMPONENT_SWIZZLE_IDENTITY,
+        b: VK_COMPONENT_SWIZZLE_IDENTITY,
+        a: VK_COMPONENT_SWIZZLE_IDENTITY
+      ),
+      subresourceRange: VkImageSubresourceRange(
+        aspectMask: aspectFlags.rawValue,
+        baseMipLevel: 0,
+        levelCount: 1,
+        baseArrayLayer: 0,
+        layerCount: 1
+      )
+    )
+
+    var imageView: VkImageView? = nil
+    vkCreateImageView(device, &createInfo, nil, &imageView)
+
+    return imageView!
+  }
+
+  func createImageViews() throws {
+    self.imageViews = try swapchainImages.map {
+      try createImageView(image: $0, format: swapchainImageFormat, aspectFlags: VK_IMAGE_ASPECT_COLOR_BIT)
+    }
   }
 }
 
