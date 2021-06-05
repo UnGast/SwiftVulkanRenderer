@@ -19,6 +19,7 @@ public class VulkanRenderer {
   @Deferred var graphicsPipeline: VkPipeline
   @Deferred var graphicsPipelineLayout: VkPipelineLayout
   @Deferred var framebuffers: [VkFramebuffer]
+  @Deferred var commandPool: VkCommandPool
 
   public init(instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.instance = instance
@@ -43,6 +44,8 @@ public class VulkanRenderer {
     try createGraphicsPipeline()
 
     try createFramebuffers()
+
+    try createCommandPool()
   }
 
   func pickPhysicalDevice() throws {
@@ -641,6 +644,170 @@ public class VulkanRenderer {
       vkCreateFramebuffer(device, &framebufferInfo, nil, &framebuffer)
       return framebuffer!
     }
+  }
+
+  func createCommandPool() throws {
+    var commandPoolInfo = VkCommandPoolCreateInfo(
+      sType: VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      queueFamilyIndex: queueFamilyIndex
+    )
+    var commandPool: VkCommandPool? = nil
+    vkCreateCommandPool(device, &commandPoolInfo, nil, &commandPool)
+    self.commandPool = commandPool!
+  }
+
+  func recordCommandBuffer(framebufferIndex: Int) throws -> VkCommandBuffer {
+    let framebuffer = framebuffers[framebufferIndex]
+
+    var commandBufferInfo = VkCommandBufferAllocateInfo(
+      sType: VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      pNext: nil,
+      commandPool: commandPool,
+      level: VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      commandBufferCount: 1
+    )
+
+    var commandBufferOpt: VkCommandBuffer?
+    vkAllocateCommandBuffers(device, &commandBufferInfo, &commandBufferOpt)
+
+    guard let commandBuffer = commandBufferOpt else {
+      fatalError("could not create command buffer")
+    }
+
+    var commandBufferBeginInfo = VkCommandBufferBeginInfo(
+      sType: VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      pNext: nil,
+      flags: 0,
+      pInheritanceInfo: nil
+    )
+    vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo)
+
+    var clearValue = VkClearValue(color: VkClearColorValue(float32: (1.0, 1.0, 0.0, 1.0)))
+    var renderPassBeginInfo = VkRenderPassBeginInfo(
+      sType: VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      pNext: nil,
+      renderPass: renderPass,
+      framebuffer: framebuffer,
+      renderArea: VkRect2D(
+        offset: VkOffset2D(x: 0, y: 0),
+        extent: swapchainExtent
+      ),
+      clearValueCount: 1,
+      pClearValues: &clearValue
+    )
+    vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE)
+
+    vkCmdEndRenderPass(commandBuffer)
+
+    vkEndCommandBuffer(commandBuffer)
+
+    /*let commandBuffer = try CommandBuffer.allocate(device: device, info: CommandBufferAllocateInfo(
+      commandPool: commandPool,
+      level: .primary,
+      commandBufferCount: 1))
+
+    commandBuffer.begin(CommandBufferBeginInfo(
+      flags: [],
+      inheritanceInfo: nil))
+
+    commandBuffer.beginRenderPass(beginInfo: RenderPassBeginInfo(
+      renderPass: renderPass,
+      framebuffer: framebuffer,
+      renderArea: Rect2D(
+        offset: Offset2D(x: 0, y: 0), extent: swapchainExtent
+      ),
+      clearValues: [
+        ClearColorValue.float32(0, 0, 0, 1).eraseToAny(),
+        ClearDepthStencilValue(depth: 1, stencil: 0).eraseToAny()]
+    ), contents: .inline)
+
+    commandBuffer.bindPipeline(pipelineBindPoint: .graphics, pipeline: graphicsPipeline)
+
+    //commandBuffer.bindVertexBuffers(firstBinding: 0, buffers: [vertexBuffer], offsets: [0])
+    //commandBuffer.bindIndexBuffer(buffer: indexBuffer, offset: 0, indexType: VK_INDEX_TYPE_UINT32)
+
+    /*for meshDrawInfo in sceneDrawInfo.meshDrawInfos {
+      var pushConstants = meshDrawInfo.transformation.transposed.elements
+      pushConstants.append(meshDrawInfo.projectionEnabled ? 1 : 0)
+      commandBuffer.pushConstants(layout: pipelineLayout, stageFlags: .vertex, offset: 0, size: UInt32(MemoryLayout<Float>.size * pushConstants.count), values: pushConstants)
+
+      commandBuffer.bindDescriptorSets(
+        pipelineBindPoint: .graphics,
+        layout: pipelineLayout,
+        firstSet: 0,
+        descriptorSets: [descriptorSets[framebufferIndex], meshDrawInfo.materialRenderData.descriptorSets[framebufferIndex]],
+        dynamicOffsets: [])
+
+      commandBuffer.drawIndexed(indexCount: meshDrawInfo.indicesCount, instanceCount: 1, firstIndex: meshDrawInfo.indicesStartIndex, vertexOffset: 0, firstInstance: 0)
+    }*/
+
+    commandBuffer.bindVertexBuffers(firstBinding: 0, buffers: [sceneDrawingManager.sceneDrawInfo.vertexBuffer.buffer], offsets: [0])
+    commandBuffer.bindIndexBuffer(buffer: sceneDrawingManager.sceneDrawInfo.indexBuffer.buffer, offset: 0, indexType: VK_INDEX_TYPE_UINT32)
+
+    for gameObject in gameObjects {
+      if let meshGameObject = gameObject as? MeshGameObject {
+        let gameObjectDrawInfo = sceneDrawingManager.sceneDrawInfo.gameObjectDrawInfos[meshGameObject]!
+
+        var pushConstants = gameObject.transformation.transposed.elements
+        pushConstants.append(1)//gameObject.projectionEnabled ? 1 : 0)
+        commandBuffer.pushConstants(layout: pipelineLayout, stageFlags: .vertex, offset: 0, size: UInt32(MemoryLayout<Float>.size * pushConstants.count), values: pushConstants)
+
+        commandBuffer.bindDescriptorSets(
+          pipelineBindPoint: .graphics,
+          layout: pipelineLayout,
+          firstSet: 0,
+          descriptorSets: [descriptorSets[framebufferIndex], gameObjectDrawInfo.materialDrawData.descriptorSets[framebufferIndex]],
+          dynamicOffsets: [])
+
+        commandBuffer.drawIndexed(
+          indexCount: UInt32(meshGameObject.mesh.indices.count),
+          instanceCount: 1,
+          firstIndex: UInt32(gameObjectDrawInfo.indicesStartIndex),
+          vertexOffset: Int32(gameObjectDrawInfo.vertexOffset),
+          firstInstance: 0)
+      }
+    }
+
+    commandBuffer.endRenderPass()
+    commandBuffer.end()*/
+
+    return commandBuffer
+  }
+
+  func draw() throws {
+    var acquireFenceInfo = VkFenceCreateInfo(
+      sType: VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+      pNext: nil,
+      flags: 0
+    )
+    var acquireFence: VkFence? = nil
+    vkCreateFence(device, &acquireFenceInfo, nil, &acquireFence)
+
+    var currentSwapchainImageIndex: UInt32 = 0
+    vkAcquireNextImageKHR(device, swapchain, 1000000, nil, acquireFence!, &currentSwapchainImageIndex)
+
+    var waitFences = [acquireFence]
+    vkWaitForFences(device, 1, waitFences, 1, 1000000)
+
+    let commandBuffer = try recordCommandBuffer(framebufferIndex: Int(currentSwapchainImageIndex))
+
+    var submitCommandBuffers = [Optional(commandBuffer)]
+    var submitInfo = VkSubmitInfo(
+      sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      pNext: nil,
+      waitSemaphoreCount: 0,
+      pWaitSemaphores: nil,
+      pWaitDstStageMask: nil,
+      commandBufferCount: 1,
+      pCommandBuffers: submitCommandBuffers,
+      signalSemaphoreCount: 0,
+      pSignalSemaphores: nil
+    )
+    vkQueueSubmit(queue, 1, &submitInfo, nil)
+
+    vkDeviceWaitIdle(device)
   }
 }
 

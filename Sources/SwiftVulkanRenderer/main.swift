@@ -61,6 +61,8 @@ guard let surface = window.surface as? VLKWindowSurface else {
 let renderer = try VulkanRenderer(instance: surface.instance, surface: surface.surface)
 
 while !quit {
+    try renderer.draw()
+
     Events.pumpEvents()
 
     while Events.pollEvent(&event) {
