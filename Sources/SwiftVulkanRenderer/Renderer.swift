@@ -786,7 +786,12 @@ public class VulkanRenderer {
     vkCreateFence(device, &acquireFenceInfo, nil, &acquireFence)
 
     var currentSwapchainImageIndex: UInt32 = 0
-    vkAcquireNextImageKHR(device, swapchain, 1000000, nil, acquireFence!, &currentSwapchainImageIndex)
+    var acquireResult = vkAcquireNextImageKHR(device, swapchain, 1000000, nil, acquireFence!, &currentSwapchainImageIndex)
+
+    print("ACQUIRE RESULT", acquireResult)
+    if acquireResult == VK_ERROR_OUT_OF_DATE_KHR {
+      fatalError("swapchain out of date")
+    }
 
     var waitFences = [acquireFence]
     vkWaitForFences(device, 1, waitFences, 1, 1000000)
@@ -808,6 +813,20 @@ public class VulkanRenderer {
     vkQueueSubmit(queue, 1, &submitInfo, nil)
 
     vkDeviceWaitIdle(device)
+
+    var presentSwapchains = [Optional(swapchain)]
+    var presentImageIndices = [currentSwapchainImageIndex]
+    var presentResult = VkResult(rawValue: 0)
+    var presentInfo = VkPresentInfoKHR(
+      sType: VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+      pNext: nil,
+      waitSemaphoreCount: 0,
+      pWaitSemaphores: nil,
+      swapchainCount: 1,
+      pSwapchains: presentSwapchains,
+      pImageIndices: presentImageIndices,
+      pResults: &presentResult
+    )
   }
 }
 

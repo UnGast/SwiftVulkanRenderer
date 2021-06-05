@@ -58,10 +58,13 @@ guard let surface = window.surface as? VLKWindowSurface else {
   fatalError("incorrect surface")
 }
 
-let renderer = try VulkanRenderer(instance: surface.instance, surface: surface.surface)
+var renderer: VulkanRenderer? = nil
+
+var frameCount = 0
 
 while !quit {
-    try renderer.draw()
+    try renderer?.draw()
+    frameCount += 1
 
     Events.pumpEvents()
 
@@ -69,6 +72,11 @@ while !quit {
         switch event.variant {
         case .userQuit:
             quit = true
+        
+        case .window:
+            if case let .resizedTo(newSize) = event.window.action {
+                renderer = try VulkanRenderer(instance: surface.instance, surface: surface.surface)
+            }
 
         default:
             break
