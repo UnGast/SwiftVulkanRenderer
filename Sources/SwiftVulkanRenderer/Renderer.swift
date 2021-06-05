@@ -777,6 +777,21 @@ public class VulkanRenderer {
     )
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE)
 
+    var clearAttachmentInfo = VkClearAttachment(
+      aspectMask: VK_IMAGE_ASPECT_COLOR_BIT.rawValue,
+      colorAttachment: 0,
+      clearValue: VkClearValue(color: VkClearColorValue(float32: (1.0, 1.0, 1.0, 1.0)))
+    )
+    var clearRect = VkClearRect(
+      rect: VkRect2D(
+        offset: VkOffset2D(x: 0, y: 0),
+        extent: swapchainExtent
+      ),
+      baseArrayLayer: 0,
+      layerCount: 1
+    )
+    vkCmdClearAttachments(commandBuffer, 1, &clearAttachmentInfo, 1, &clearRect)
+
     vkCmdEndRenderPass(commandBuffer)
 
     vkEndCommandBuffer(commandBuffer)
