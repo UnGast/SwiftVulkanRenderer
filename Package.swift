@@ -14,6 +14,8 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
+        .package(name: "Swim", url: "https://github.com/t-ae/swim.git", .exact("3.9.0")),
+        .package(name: "GfxMath", path: "../swift-gfx-math"),
         .package(name: "Fireblade", path: "../FirebladeEngine")
     ],
     targets: [
@@ -21,10 +23,11 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "SwiftVulkanRenderer",
-            dependencies: [.product(name: "FirebladeHID", package: "Fireblade")],
+            dependencies: [.product(name: "FirebladeHID", package: "Fireblade"), "CTinyObjLoader", "Swim", "GfxMath"],
             resources: [
                 .process("Resources")
             ]),
+        .target(name: "CTinyObjLoader"),
         .testTarget(
             name: "SwiftVulkanRendererTests",
             dependencies: ["SwiftVulkanRenderer"]),
