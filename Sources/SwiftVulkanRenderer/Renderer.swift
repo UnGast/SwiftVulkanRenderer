@@ -17,6 +17,8 @@ public class VulkanRenderer {
   @Deferred var imageViews: [VkImageView]
   @Deferred var renderPass: VkRenderPass
   @Deferred var graphicsPipeline: VkPipeline
+  @Deferred var graphicsPipelineLayout: VkPipelineLayout
+  @Deferred var framebuffers: [VkFramebuffer]
 
   public init(instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.instance = instance
@@ -39,6 +41,8 @@ public class VulkanRenderer {
     try createRenderPass()
 
     try createGraphicsPipeline()
+
+    try createFramebuffers()
   }
 
   func pickPhysicalDevice() throws {
@@ -275,7 +279,7 @@ public class VulkanRenderer {
       colorAttachmentCount: 1,
       pColorAttachments: &colorAttachmentRef,
       pResolveAttachments: nil,
-      pDepthStencilAttachment: &depthAttachmentRef,
+      pDepthStencilAttachment: nil,//&depthAttachmentRef,
       preserveAttachmentCount: 0,
       pPreserveAttachments: nil
     )
@@ -290,12 +294,12 @@ public class VulkanRenderer {
       dependencyFlags: 0
     )
 
-    var attachments = [colorAttachment, depthAttachment]
+    var attachments = [colorAttachment]//, depthAttachment]
     var renderPassInfo = VkRenderPassCreateInfo(
       sType: VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       pNext: nil,
       flags: 0,
-      attachmentCount: 2,
+      attachmentCount: 1,//2,
       pAttachments: &attachments,
       subpassCount: 1,
       pSubpasses: &subpass,
@@ -594,7 +598,7 @@ public class VulkanRenderer {
       pViewportState: &viewportStateInfo,
       pRasterizationState: &rasterizationStateInfo,
       pMultisampleState: &multisampleStateInfo,
-      pDepthStencilState: &depthStencilStateInfo,
+      pDepthStencilState: nil,//(&depthStencilStateInfo,
       pColorBlendState: &colorBlendStateInfo,
       pDynamicState: nil,
       layout: pipelineLayout,
@@ -608,13 +612,35 @@ public class VulkanRenderer {
     vkCreateGraphicsPipelines(device, nil, 1, &pipelineInfo, nil, &pipeline)
 
     self.graphicsPipeline = pipeline!
-    
+    self.graphicsPipelineLayout = pipelineLayout
     /*
 
     let graphicsPipeline = try Pipeline(device: device, createInfo: pipelineInfo)
 
     self.graphicsPipeline = graphicsPipeline
     self.pipelineLayout = pipelineLayout*/
+  }
+
+  func createFramebuffers() throws {
+    self.framebuffers = try imageViews.map { imageView in
+      var attachments = [Optional(imageView)]
+
+      var framebufferInfo = VkFramebufferCreateInfo(
+        sType: VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        pNext: nil,
+        flags: 0,
+        renderPass: renderPass,
+        attachmentCount: 1,
+        pAttachments: attachments,
+        width: swapchainExtent.width,
+        height: swapchainExtent.height,
+        layers: 1 
+      )
+
+      var framebuffer = VkFramebuffer(bitPattern: 0)
+      vkCreateFramebuffer(device, &framebufferInfo, nil, &framebuffer)
+      return framebuffer!
+    }
   }
 }
 
