@@ -15,6 +15,9 @@ public class VulkanRenderer {
   @Deferred var swapchainExtent: VkExtent2D
   @Deferred var swapchainImages: [VkImage]
   @Deferred var imageViews: [VkImageView]
+  @Deferred var depthImageMemory: VkDeviceMemory
+  @Deferred var depthImage: VkImage
+  @Deferred var depthImageView: VkImageView
   @Deferred var renderPass: VkRenderPass
   @Deferred var graphicsPipeline: VkPipeline
   @Deferred var graphicsPipelineLayout: VkPipelineLayout
@@ -38,6 +41,8 @@ public class VulkanRenderer {
     try getSwapchainImages()
 
     try createImageViews()
+
+    try createDepthResources()
 
     try createRenderPass()
 
@@ -239,6 +244,76 @@ public class VulkanRenderer {
     }
   }
 
+  func findMemoryType(typeFilter: UInt32, properties: VkMemoryPropertyFlagBits) throws -> UInt32 {
+    var memoryProperties = VkPhysicalDeviceMemoryProperties()
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties)
+
+    for index in 0..<memoryProperties.memoryTypeCount {
+      let checkType = withUnsafePointer(to: memoryProperties.memoryTypes.0) {
+        $0[Int(index)]
+      }
+      if typeFilter & (1 << index) != 0 && checkType.propertyFlags & properties.rawValue == properties.rawValue {
+        return UInt32(index)
+      }
+    }
+
+    fatalError("no suitable memory type found")
+  }
+  
+  func createImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkImageTiling, usage: VkImageUsageFlagBits, properties: VkMemoryPropertyFlagBits) throws -> (VkImage, VkDeviceMemory) {
+    var imageInfo = VkImageCreateInfo(
+      sType: VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      imageType: VK_IMAGE_TYPE_2D,
+      format: format,
+      extent: VkExtent3D(width: width, height: height, depth: 1),
+      mipLevels: 1,
+      arrayLayers: 1,
+      samples: VK_SAMPLE_COUNT_1_BIT,
+      tiling: tiling,
+      usage: usage.rawValue,
+      sharingMode: VK_SHARING_MODE_EXCLUSIVE,
+      queueFamilyIndexCount: 0,
+      pQueueFamilyIndices: nil,
+      initialLayout: VK_IMAGE_LAYOUT_UNDEFINED
+    )
+    var image: VkImage? = nil
+    vkCreateImage(device, &imageInfo, nil, &image)
+
+    var memoryRequirements = VkMemoryRequirements()
+    vkGetImageMemoryRequirements(device, image, &memoryRequirements)
+
+    var imageMemory: VkDeviceMemory? = nil
+    var imageMemoryAllocateInfo = VkMemoryAllocateInfo(
+      sType: VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      pNext: nil,
+      allocationSize: memoryRequirements.size,
+      memoryTypeIndex: try findMemoryType(typeFilter: memoryRequirements.memoryTypeBits, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+    )
+    vkAllocateMemory(device, &imageMemoryAllocateInfo, nil, &imageMemory)
+
+    vkBindImageMemory(device, image, imageMemory, 0)
+
+    return (image!, imageMemory!)
+  }
+
+  func createDepthResources() throws {
+    // TODO: probably depthFormat should be chosen according to support,
+    // as shown in tutorial
+    let depthFormat = VK_FORMAT_D32_SFLOAT
+
+    (depthImage, depthImageMemory) = try createImage(
+      width: swapchainExtent.width,
+      height: swapchainExtent.height,
+      format: depthFormat,
+      tiling: VK_IMAGE_TILING_OPTIMAL,
+      usage: VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+      properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+
+    depthImageView = try createImageView(image: depthImage, format: depthFormat, aspectFlags: VK_IMAGE_ASPECT_DEPTH_BIT) 
+  }
+
   func createRenderPass() throws {
     var colorAttachment = VkAttachmentDescription(
       flags: 0,
@@ -282,7 +357,7 @@ public class VulkanRenderer {
       colorAttachmentCount: 1,
       pColorAttachments: &colorAttachmentRef,
       pResolveAttachments: nil,
-      pDepthStencilAttachment: nil,//&depthAttachmentRef,
+      pDepthStencilAttachment: &depthAttachmentRef,
       preserveAttachmentCount: 0,
       pPreserveAttachments: nil
     )
@@ -297,12 +372,12 @@ public class VulkanRenderer {
       dependencyFlags: 0
     )
 
-    var attachments = [colorAttachment]//, depthAttachment]
+    var attachments = [colorAttachment, depthAttachment]
     var renderPassInfo = VkRenderPassCreateInfo(
       sType: VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       pNext: nil,
       flags: 0,
-      attachmentCount: 1,//2,
+      attachmentCount: 2,
       pAttachments: &attachments,
       subpassCount: 1,
       pSubpasses: &subpass,
@@ -601,7 +676,7 @@ public class VulkanRenderer {
       pViewportState: &viewportStateInfo,
       pRasterizationState: &rasterizationStateInfo,
       pMultisampleState: &multisampleStateInfo,
-      pDepthStencilState: nil,//(&depthStencilStateInfo,
+      pDepthStencilState: &depthStencilStateInfo,
       pColorBlendState: &colorBlendStateInfo,
       pDynamicState: nil,
       layout: pipelineLayout,
@@ -626,14 +701,14 @@ public class VulkanRenderer {
 
   func createFramebuffers() throws {
     self.framebuffers = try imageViews.map { imageView in
-      var attachments = [Optional(imageView)]
+      var attachments = [Optional(imageView), Optional(depthImageView)]
 
       var framebufferInfo = VkFramebufferCreateInfo(
         sType: VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         pNext: nil,
         flags: 0,
         renderPass: renderPass,
-        attachmentCount: 1,
+        attachmentCount: 2,
         pAttachments: attachments,
         width: swapchainExtent.width,
         height: swapchainExtent.height,
@@ -684,7 +759,10 @@ public class VulkanRenderer {
     )
     vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo)
 
-    var clearValue = VkClearValue(color: VkClearColorValue(float32: (1.0, 1.0, 0.0, 1.0)))
+    var clearValues = [
+      VkClearValue(color: VkClearColorValue(float32: (1.0, 1.0, 0.0, 1.0))),
+      VkClearValue(depthStencil: VkClearDepthStencilValue(depth: 1.0, stencil: 0))
+    ]
     var renderPassBeginInfo = VkRenderPassBeginInfo(
       sType: VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       pNext: nil,
@@ -694,8 +772,8 @@ public class VulkanRenderer {
         offset: VkOffset2D(x: 0, y: 0),
         extent: swapchainExtent
       ),
-      clearValueCount: 1,
-      pClearValues: &clearValue
+      clearValueCount: 2,
+      pClearValues: clearValues
     )
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE)
 
