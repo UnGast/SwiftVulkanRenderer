@@ -468,6 +468,15 @@ public class VulkanRenderer {
       basePipelineIndex: 0 
     )
     */
+    var vertexInputStateInfo = VkPipelineVertexInputStateCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      vertexBindingDescriptionCount: 0,
+      pVertexBindingDescriptions: nil,
+      vertexAttributeDescriptionCount: 0,
+      pVertexAttributeDescriptions: nil
+    )
 
     var inputAssemblyStateInfo = VkPipelineInputAssemblyStateCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -518,6 +527,43 @@ public class VulkanRenderer {
       alphaToCoverageEnable: 0,
       alphaToOneEnable: 0
     )
+
+    var depthStencilStateInfo = VkPipelineDepthStencilStateCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      depthTestEnable: 1,
+      depthWriteEnable: 1,
+      depthCompareOp: VK_COMPARE_OP_LESS,
+      depthBoundsTestEnable: 0,
+      stencilTestEnable: 0,
+      front: VkStencilOpState(),
+      back: VkStencilOpState(), 
+      minDepthBounds: 0,
+      maxDepthBounds: 1
+    )
+
+    var colorBlendAttachment = VkPipelineColorBlendAttachmentState(
+      blendEnable: 1,
+      srcColorBlendFactor: VK_BLEND_FACTOR_SRC_ALPHA,
+      dstColorBlendFactor: VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      colorBlendOp: VK_BLEND_OP_ADD,
+      srcAlphaBlendFactor: VK_BLEND_FACTOR_SRC_ALPHA,
+      dstAlphaBlendFactor: VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      alphaBlendOp: VK_BLEND_OP_ADD,
+      colorWriteMask: VK_COLOR_COMPONENT_R_BIT.rawValue | VK_COLOR_COMPONENT_G_BIT.rawValue | VK_COLOR_COMPONENT_B_BIT.rawValue | VK_COLOR_COMPONENT_A_BIT.rawValue
+    )
+
+    var colorBlendStateInfo = VkPipelineColorBlendStateCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      logicOpEnable: 0,
+      logicOp: VK_LOGIC_OP_COPY,
+      attachmentCount: 1,
+      pAttachments: &colorBlendAttachment,
+      blendConstants: (0, 0, 0, 0)
+    )
     
     var pipelineLayoutInfo = VkPipelineLayoutCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -542,14 +588,14 @@ public class VulkanRenderer {
       flags: 0,
       stageCount: UInt32(shaderStageInfos.count),
       pStages: &shaderStageInfos,
-      pVertexInputState: nil,
+      pVertexInputState: &vertexInputStateInfo,
       pInputAssemblyState: &inputAssemblyStateInfo,
       pTessellationState: nil,
       pViewportState: &viewportStateInfo,
       pRasterizationState: &rasterizationStateInfo,
       pMultisampleState: &multisampleStateInfo,
-      pDepthStencilState: nil,
-      pColorBlendState: nil,
+      pDepthStencilState: &depthStencilStateInfo,
+      pColorBlendState: &colorBlendStateInfo,
       pDynamicState: nil,
       layout: pipelineLayout,
       renderPass: renderPass,
