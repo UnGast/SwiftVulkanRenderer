@@ -879,7 +879,7 @@ public class VulkanRenderer {
     vkCreateFence(device, &acquireFenceInfo, nil, &acquireFence)
 
     var currentSwapchainImageIndex: UInt32 = 0
-    var acquireResult = vkAcquireNextImageKHR(device, swapchain, 1000000, nil, acquireFence!, &currentSwapchainImageIndex)
+    var acquireResult = vkAcquireNextImageKHR(device, swapchain, 0, nil, acquireFence!, &currentSwapchainImageIndex)
 
     print("ACQUIRE RESULT", acquireResult)
     if acquireResult == VK_ERROR_OUT_OF_DATE_KHR {
@@ -887,7 +887,7 @@ public class VulkanRenderer {
     }
 
     var waitFences = [acquireFence]
-    vkWaitForFences(device, 1, waitFences, 1, 1000000)
+    vkWaitForFences(device, 1, waitFences, 1, 10000000)
 
     let commandBuffer = try recordCommandBuffer(framebufferIndex: Int(currentSwapchainImageIndex))
 
@@ -920,6 +920,7 @@ public class VulkanRenderer {
       pImageIndices: presentImageIndices,
       pResults: &presentResult
     )
+    vkQueuePresentKHR(queue, &presentInfo)
   }
 }
 
