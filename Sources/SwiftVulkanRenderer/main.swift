@@ -58,6 +58,8 @@ guard let surface = window.surface as? VLKWindowSurface else {
   fatalError("incorrect surface")
 }
 
+let scene = Scene()
+
 var renderer: VulkanRenderer? = nil
 
 var frameCount = 0
@@ -76,6 +78,7 @@ while !quit {
         case .window:
             if case let .resizedTo(newSize) = event.window.action {
                 renderer = try VulkanRenderer(instance: surface.instance, surface: surface.surface)
+                try renderer?.sceneManager.update(scene: scene)
             }
 
         default:

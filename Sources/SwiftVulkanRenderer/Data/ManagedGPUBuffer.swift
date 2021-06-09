@@ -2,10 +2,10 @@ import Vulkan
 
 public class ManagedGPUBuffer {
     public var buffer: VkBuffer
-    public var bufferMemory: VkDeviceMemory
+    public var range: Range<VkDeviceSize>
 
-    public init(buffer: VkBuffer, bufferMemory: VkDeviceMemory) {
+    public init(buffer: VkBuffer, range: Range<VkDeviceSize>) {
         self.buffer = buffer
-        self.bufferMemory = bufferMemory
+        self.range = range
     }
 }
