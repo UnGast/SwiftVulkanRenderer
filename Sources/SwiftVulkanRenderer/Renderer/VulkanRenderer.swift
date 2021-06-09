@@ -407,21 +407,28 @@ public class VulkanRenderer {
     self.renderPass = renderPass!
   }
 
-  func createGraphicsPipeline() throws {
-    let vertexShaderCode = try Data(contentsOf: Bundle.module.url(forResource: "vertex", withExtension: "spv")!)
+  func loadShaderModule(resourceName: String) throws -> VkShaderModule {
+    let shaderCode = try Data(contentsOf: Bundle.module.url(forResource: resourceName, withExtension: "spv")!)
 
-    var vertexShaderModuleInfo = vertexShaderCode.withUnsafeBytes {
+    var shaderModuleInfo = shaderCode.withUnsafeBytes {
       VkShaderModuleCreateInfo(
         sType: VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         pNext: nil,
         flags: 0,
-        codeSize: vertexShaderCode.count,
+        codeSize: shaderCode.count,
         pCode: $0
       )
     }
 
-    var vertexShaderModule: VkShaderModule? = nil
-    vkCreateShaderModule(device, &vertexShaderModuleInfo, nil, &vertexShaderModule)
+    var shaderModule: VkShaderModule? = nil
+    vkCreateShaderModule(device, &shaderModuleInfo, nil, &shaderModule)
+
+    return shaderModule!
+  }
+
+  func createGraphicsPipeline() throws {
+    let vertexShaderModule = try loadShaderModule(resourceName: "vertex")
+    let fragmentShaderModule = try loadShaderModule(resourceName: "fragment")
 
     var vertexShaderStageInfo = VkPipelineShaderStageCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -432,8 +439,17 @@ public class VulkanRenderer {
       pName: strdup("main"),
       pSpecializationInfo: nil
     )
+    var fragmentShaderStageInfo = VkPipelineShaderStageCreateInfo(
+      sType: VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      stage: VK_SHADER_STAGE_FRAGMENT_BIT,
+      module: fragmentShaderModule,
+      pName: strdup("main"),
+      pSpecializationInfo: nil
+    )
 
-    var shaderStageInfos = [vertexShaderStageInfo]
+    var shaderStageInfos = [vertexShaderStageInfo, fragmentShaderStageInfo]
 
     /*let vertexShaderCode: Data = try Data(contentsOf: Bundle.module.url(forResource: "vertex", withExtension: "spv")!)
     let fragmentShaderCode: Data = try Data(contentsOf: Bundle.module.url(forResource: "fragment", withExtension: "spv")!)
@@ -808,6 +824,12 @@ public class VulkanRenderer {
       layerCount: 1
     )
     vkCmdClearAttachments(commandBuffer, 1, &clearAttachmentInfo, 1, &clearRect)
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline)
+    var vertexBuffers = [Optional(sceneManager.vertexBuffer.buffer)]
+    var vertexOffsets = [VkDeviceSize(0)]
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, vertexOffsets)
+    vkCmdDraw(commandBuffer, 3, 1, 0, 0)
 
     vkCmdEndRenderPass(commandBuffer)
 
