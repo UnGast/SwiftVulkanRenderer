@@ -902,7 +902,7 @@ public class VulkanRenderer {
     var vertexBuffers = [Optional(sceneManager.vertexBuffer.buffer)]
     var vertexOffsets = [VkDeviceSize(0)]
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, vertexOffsets)
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0)
+    vkCmdDraw(commandBuffer, UInt32(sceneManager.vertexCount), 1, 0, 0)
 
     vkCmdEndRenderPass(commandBuffer)
 

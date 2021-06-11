@@ -5,6 +5,7 @@ public class SceneManager {
 
   @Deferred var stagingBuffer: ManagedGPUBuffer
   @Deferred var vertexBuffer: ManagedGPUBuffer 
+  var vertexCount: Int = 0
 
   public init(renderer: VulkanRenderer) throws {
     self.renderer = renderer
@@ -14,11 +15,8 @@ public class SceneManager {
   }
 
   public func update(scene: Scene) throws {
-    try stagingBuffer.store([
-      -1, 1, 0,
-      1, 0, 0,
-      0, -1, 0
-    ])
+    vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.vertices.count }
+    try stagingBuffer.store(scene.objects.flatMap { $0.mesh.vertices.flatMap { $0.position.elements } })
 
     var commandBuffer = try renderer.beginSingleTimeCommands()
     vertexBuffer.copy(from: stagingBuffer, srcRange: 0..<stagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
