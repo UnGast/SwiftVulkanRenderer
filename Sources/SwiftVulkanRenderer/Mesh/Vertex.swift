@@ -6,19 +6,19 @@ public struct Vertex {
   public var position: FVec3
   //public var normal: FVec3
   //public var color: Color
-  public var texCoords: FVec2
+  //public var texCoords: FVec2
 
-  public init(position: FVec3, texCoords: FVec2/*, normal: FVec3 = .zero, color: Color = .white, texCoord: FVec2 = .zero*/) {
+  public init(position: FVec3/*, texCoords: FVec2*/ /*, normal: FVec3 = .zero, color: Color = .white, texCoord: FVec2 = .zero*/) {
     self.position = position
-    self.texCoords = texCoords
+    //self.texCoords = texCoords
     /*self.normal = normal
     self.color = color
     self.texCoord = texCoord*/
   }
 
-  public static var serializationMeasureInstance: Vertex {
+  /*public static var serializationMeasureInstance: Vertex {
     Self(position: .zero, texCoords: .zero)
-  }
+  }*/
 
   /*public func serializedData(aligned: Bool) -> Data {
     var alignment: Int = 1

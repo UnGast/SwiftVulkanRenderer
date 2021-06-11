@@ -1,5 +1,6 @@
 import HID
 import Vulkan
+import Swim
 
 Platform.initialize()
 print("Platform version: \(Platform.version)")
@@ -58,7 +59,10 @@ guard let surface = window.surface as? VLKWindowSurface else {
   fatalError("incorrect surface")
 }
 
+let mainMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
+
 let scene = Scene()
+scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformation: [[1]]))
 
 var renderer: VulkanRenderer? = nil
 

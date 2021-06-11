@@ -51,10 +51,10 @@ extension Mesh {
               x: attrib.vertices[Int(rawVertex.v_idx * 3 + 0)],
               y: attrib.vertices[Int(rawVertex.v_idx * 3 + 1)],
               z: attrib.vertices[Int(rawVertex.v_idx * 3 + 2)]
-            ), texCoords: FVec2(
+            )/*, texCoords: FVec2(
               x: rawVertex.vt_idx >= 0 ? attrib.texcoords[Int(rawVertex.vt_idx * 2 + 0)] : -1,
               y: rawVertex.vt_idx >= 0 ? attrib.texcoords[Int(rawVertex.vt_idx * 2 + 1)] : -1
-            )/*, 
+            )*/ /*, 
             normal: .zero,
             color: Color(
               r: 0, g: 0, b: 0, a: 255

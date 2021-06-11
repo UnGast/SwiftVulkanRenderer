@@ -23,7 +23,7 @@ public class MemoryManager {
     var deviceMemory: VkDeviceMemory? = nil
     vkAllocateMemory(renderer.device, &allocateInfo, nil, &deviceMemory)
 
-    self.memory = ManagedGPUMemory(memory: deviceMemory!)
+    self.memory = ManagedGPUMemory(manager: self, memory: deviceMemory!)
   }
 
   public func getBuffer(size: Int, usage: VkBufferUsageFlagBits) throws -> ManagedGPUBuffer {
@@ -49,15 +49,17 @@ public class MemoryManager {
 
     vkBindBufferMemory(renderer.device, buffer, memory.memory, memoryOffset)
 
-    return ManagedGPUBuffer(buffer: buffer!, range: memoryOffset..<(memoryOffset + memorySize))
+    return ManagedGPUBuffer(memory: memory, buffer: buffer!, range: memoryOffset..<(memoryOffset + memorySize))
   }
 }
 
 class ManagedGPUMemory {
+  unowned let manager: MemoryManager
   let memory: VkDeviceMemory
   let usedRanges: [Range<Int>] = []
 
-  public init(memory: VkDeviceMemory) {
+  public init(manager: MemoryManager, memory: VkDeviceMemory) {
+    self.manager = manager
     self.memory = memory
   }
 }
