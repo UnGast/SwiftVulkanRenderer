@@ -583,14 +583,47 @@ public class VulkanRenderer {
       basePipelineIndex: 0 
     )
     */
+    var vertexInputBindingDescription = VkVertexInputBindingDescription(
+      binding: 0,
+      stride: UInt32(MemoryLayout<Float>.size * 3),
+      inputRate: VK_VERTEX_INPUT_RATE_VERTEX
+    )
+
+    var vertexInputAttributeDescriptions = [
+      VkVertexInputAttributeDescription(
+        location: 0,
+        binding: 0,
+        format: VK_FORMAT_R32G32B32_SFLOAT,
+        offset: 0
+      ),
+      /*VkVertexInputAttributeDescription(
+        location: 1,
+        binding: 0,
+        format: .R32G32B32_SFLOAT,
+        offset: UInt32(MemoryLayout<Float>.size * 3)
+      ),
+      VkVertexInputAttributeDescription(
+        location: 2,
+        binding: 0,
+        format: .R32G32B32A32_SFLOAT,
+        offset: UInt32(MemoryLayout<Float>.size * 6)
+      ),
+      VkVertexInputAttributeDescription(
+        location: 3,
+        binding: 0,
+        format: .R32G32_SFLOAT,
+        offset: UInt32(MemoryLayout<Float>.size * 10)
+      )*/
+    ]
+
     var vertexInputStateInfo = VkPipelineVertexInputStateCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       pNext: nil,
       flags: 0,
-      vertexBindingDescriptionCount: 0,
-      pVertexBindingDescriptions: nil,
-      vertexAttributeDescriptionCount: 0,
-      pVertexAttributeDescriptions: nil
+      vertexBindingDescriptionCount: 1,
+      pVertexBindingDescriptions: &vertexInputBindingDescription,
+      vertexAttributeDescriptionCount: UInt32(vertexInputAttributeDescriptions.count),
+      pVertexAttributeDescriptions: vertexInputAttributeDescriptions
     )
 
     var inputAssemblyStateInfo = VkPipelineInputAssemblyStateCreateInfo(
@@ -766,7 +799,47 @@ public class VulkanRenderer {
     self.commandPool = commandPool!
   }
 
-  func recordCommandBuffer(framebufferIndex: Int) throws -> VkCommandBuffer {
+  func beginSingleTimeCommands() throws -> VkCommandBuffer {
+    var allocateInfo = VkCommandBufferAllocateInfo(
+      sType: VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      pNext: nil,
+      commandPool: commandPool,
+      level: VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      commandBufferCount: 1
+    )
+    var commandBuffer: VkCommandBuffer? = nil
+    vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer)
+
+    var beginInfo = VkCommandBufferBeginInfo(
+      sType: VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      pNext: nil,
+      flags: VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT.rawValue,
+      pInheritanceInfo: nil
+    )
+    vkBeginCommandBuffer(commandBuffer, &beginInfo)
+
+    return commandBuffer!
+  }
+
+  func endSingleTimeCommands(commandBuffer: VkCommandBuffer) throws {
+    vkEndCommandBuffer(commandBuffer)
+
+    var commandBuffers = [Optional(commandBuffer)]
+    var submitInfo = VkSubmitInfo(
+      sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      pNext: nil,
+      waitSemaphoreCount: 0,
+      pWaitSemaphores: nil,
+      pWaitDstStageMask: nil,
+      commandBufferCount: 1,
+      pCommandBuffers: commandBuffers,
+      signalSemaphoreCount: 0,
+      pSignalSemaphores: nil
+    )
+    vkQueueSubmit(queue, 1, &submitInfo, nil)
+  }
+
+  func recordDrawCommandBuffer(framebufferIndex: Int) throws -> VkCommandBuffer {
     let framebuffer = framebuffers[framebufferIndex]
 
     var commandBufferInfo = VkCommandBufferAllocateInfo(
@@ -928,7 +1001,7 @@ public class VulkanRenderer {
     var waitFences = [acquireFence]
     vkWaitForFences(device, 1, waitFences, 1, 10000000)
 
-    let commandBuffer = try recordCommandBuffer(framebufferIndex: Int(currentSwapchainImageIndex))
+    let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(currentSwapchainImageIndex))
 
     var submitCommandBuffers = [Optional(commandBuffer)]
     var submitInfo = VkSubmitInfo(
@@ -1934,7 +2007,7 @@ public class VulkanRenderer {
     imagesInFlightWithFences[imageIndex] = inFlightFence
     inFlightFence.reset()
 
-    let commandBuffer = try recordCommandBuffer(framebufferIndex: Int(imageIndex))
+    let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(imageIndex))
 
     try updateUniformBuffer(currentImage: imageIndex)
 
@@ -2012,7 +2085,7 @@ public class VulkanRenderer {
     try transferVertexIndices(indices: sceneDrawInfo.indices)
   }
 
-  func recordCommandBuffer(framebufferIndex: Int) throws -> CommandBuffer {
+  func recordDrawCommandBuffer(framebufferIndex: Int) throws -> CommandBuffer {
     let framebuffer = framebuffers[framebufferIndex]
 
     let commandBuffer = try CommandBuffer.allocate(device: device, info: CommandBufferAllocateInfo(
