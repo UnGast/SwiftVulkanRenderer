@@ -1,6 +1,7 @@
 import HID
 import Vulkan
 import Swim
+import GfxMath
 
 Platform.initialize()
 print("Platform version: \(Platform.version)")
@@ -68,6 +69,8 @@ var renderer: VulkanRenderer? = nil
 
 var frameCount = 0
 
+var cameraPitch = Float(0)
+var cameraYaw = Float(0)
 while !quit {
     try renderer?.draw()
     frameCount += 1
@@ -84,6 +87,45 @@ while !quit {
                 renderer = try VulkanRenderer(instance: surface.instance, surface: surface.surface)
                 try renderer?.sceneManager.update(scene: scene)
             }
+
+        case .pointerMotion:
+            let eventData = event.pointerMotion
+
+            cameraPitch -= eventData.y / 360
+            cameraPitch = min(89 / 360, max(-89 / 360, cameraPitch))
+            cameraYaw += Float(eventData.deltaX) / 360
+
+            let forwardDirection = FVec3(
+                sin(cameraYaw),
+                sin(cameraPitch),
+                cos(cameraPitch) + cos(cameraYaw)
+            ).normalized()
+            
+            scene.camera.forward = forwardDirection
+
+            /*
+        renderer.raytracingRenderer.camera.forward = forwardDirection
+        if let keyDown = $0 as? KeyDownEvent {
+        let speed = Float(100)
+        var move: FVec3 = .zero
+        let forward = renderer.raytracingRenderer.camera.forward
+        let right = renderer.raytracingRenderer.camera.right
+        switch keyDown.key {
+            case .arrowUp:
+                move += forward * speed
+            case .arrowDown:
+                move -= forward * speed
+            case .arrowLeft:
+                move -= right * speed
+            case .arrowRight:
+                move += right * speed
+            default: break
+        }
+
+        renderer.raytracingRenderer.camera.position += move
+    } else if let mouseMove = $0 as? MouseMoveEvent {
+        
+    }*/
 
         default:
             break

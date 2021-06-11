@@ -19,6 +19,14 @@ public class VulkanRenderer {
   @Deferred var depthImage: VkImage
   @Deferred var depthImageView: VkImageView
   @Deferred var renderPass: VkRenderPass
+
+  @Deferred var uniformMemoryManager: MemoryManager
+  @Deferred var uniformStagingMemoryManager: MemoryManager
+  @Deferred var descriptorPool: VkDescriptorPool
+  @Deferred var uniformSceneBuffer: ManagedGPUBuffer 
+  @Deferred var uniformSceneStagingBuffer: ManagedGPUBuffer 
+  @Deferred var sceneDescriptorSetLayout: VkDescriptorSetLayout
+
   @Deferred var graphicsPipeline: VkPipeline
   @Deferred var graphicsPipelineLayout: VkPipelineLayout
   @Deferred var framebuffers: [VkFramebuffer]
@@ -49,6 +57,15 @@ public class VulkanRenderer {
     try createDepthResources()
 
     try createRenderPass()
+
+    try createDescriptorPool()
+
+    uniformMemoryManager = try MemoryManager(renderer: self, memoryTypeIndex: findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+    uniformStagingMemoryManager = try MemoryManager(renderer: self, memoryTypeIndex: findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
+
+    try createUniformBuffers()
+
+    try createSceneDescriptorSetLayout()
 
     try createGraphicsPipeline()
 
@@ -425,6 +442,121 @@ public class VulkanRenderer {
 
     return shaderModule!
   }
+
+  func createUniformBuffers() throws {
+    uniformSceneBuffer = try uniformMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+    uniformSceneStagingBuffer = try uniformMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_TRANSFER_SRC_BIT.rawValue))
+  }
+
+  func createDescriptorPool() throws {
+    /*var createInfo
+    descriptorPool = try DescriptorPool.create(device: device, createInfo: DescriptorPoolCreateInfo(
+      flags: 0,
+      maxSets: UInt32(1),
+      poolSizes: [
+        DescriptorPoolSize(
+          type: .uniformBuffer, descriptorCount: UInt32(swapchainImages.count)
+        ),
+        DescriptorPoolSize(
+          type: .combinedImageSampler, descriptorCount: UInt32(swapchainImages.count)
+        )
+      ]
+    ))*/
+  }
+
+  func createSceneDescriptorSetLayout() throws {
+    var viewMatrixBinding = VkDescriptorSetLayoutBinding(
+      binding: 0,
+      descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      descriptorCount: 1,
+      stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue,
+      pImmutableSamplers: nil
+    )
+
+    var bindings = [viewMatrixBinding]
+    var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
+      sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      bindingCount: 1,
+      pBindings: bindings
+    )
+
+    var descriptorSetLayout: VkDescriptorSetLayout? = nil
+    vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nil, &descriptorSetLayout)
+
+    self.sceneDescriptorSetLayout = descriptorSetLayout!
+  }
+
+  /*
+  func createUniformBuffers() throws {
+    let bufferSize = DeviceSize(UniformBufferObject.dataSize)
+
+    uniformBuffers = []
+    uniformBuffersMemory = []
+    
+    for _ in 0..<swapchainImages.count {
+      let (buffer, bufferMemory) = try createBuffer(size: bufferSize, usage: .uniformBuffer, properties: [.hostVisible, .hostCoherent])
+      uniformBuffers.append(buffer)
+      uniformBuffersMemory.append(bufferMemory)
+    }
+  }
+
+  func createDescriptorPool() throws {
+    descriptorPool = try DescriptorPool.create(device: device, createInfo: DescriptorPoolCreateInfo(
+      flags: .none,
+      maxSets: UInt32(swapchainImages.count),
+      poolSizes: [
+        DescriptorPoolSize(
+          type: .uniformBuffer, descriptorCount: UInt32(swapchainImages.count)
+        ),
+        DescriptorPoolSize(
+          type: .combinedImageSampler, descriptorCount: UInt32(swapchainImages.count)
+        )
+      ]
+    ))
+  }
+
+  func createDescriptorSets() throws {
+    descriptorSets = DescriptorSet.allocate(device: device, allocateInfo: DescriptorSetAllocateInfo(
+        descriptorPool: descriptorPool,
+        descriptorSetCount: UInt32(swapchainImages.count),
+        setLayouts: Array(repeating: descriptorSetLayout, count: swapchainImages.count)))
+    
+    for i in 0..<swapchainImages.count {
+      let bufferInfo = DescriptorBufferInfo(
+        buffer: uniformBuffers[i], offset: 0, range: DeviceSize(UniformBufferObject.dataSize)
+      )
+
+      /*let imageInfo = DescriptorImageInfo(
+        sampler: textureSampler, imageView: textureImageView, imageLayout: .shaderReadOnlyOptimal 
+      )*/
+
+      let descriptorWrites = [
+        WriteDescriptorSet(
+          dstSet: descriptorSets[i],
+          dstBinding: 0,
+          dstArrayElement: 0,
+          descriptorCount: 1,
+          descriptorType: .uniformBuffer,
+          imageInfo: [],
+          bufferInfo: [bufferInfo],
+          texelBufferView: []),
+        /*WriteDescriptorSet(
+          dstSet: descriptorSets[i],
+          dstBinding: 1,
+          dstArrayElement: 0,
+          descriptorCount: 1,
+          descriptorType: .combinedImageSampler,
+          imageInfo: [imageInfo],
+          bufferInfo: [],
+          texelBufferView: [])*/
+      ]
+
+      device.updateDescriptorSets(descriptorWrites: descriptorWrites, descriptorCopies: nil)
+    }
+  }
+  */
 
   func createGraphicsPipeline() throws {
     let vertexShaderModule = try loadShaderModule(resourceName: "vertex")
