@@ -3,7 +3,9 @@
 
 layout (location=0) in vec3 inPos;
 
-uniform mat4 rotation;
+layout(set = 0, binding = 0) uniform SceneParams {
+    mat4 viewMatrix;
+};
 
 vec2 positions[3] = vec2[](
     vec2(0.0, -0.5),
@@ -18,5 +20,5 @@ vec3 colors[3] = vec3[](
 );
 
 void main() {
-    gl_Position = vec4(inPos, 1);
+    gl_Position = viewMatrix * vec4(inPos, 1);
 }

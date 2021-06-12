@@ -20,6 +20,15 @@ public class SceneManager {
 
     var commandBuffer = try renderer.beginSingleTimeCommands()
     vertexBuffer.copy(from: stagingBuffer, srcRange: 0..<stagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
+
+    try renderer.uniformSceneStagingBuffer.store([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    ])
+    renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<MemoryLayout<Float>.size * 16, dstOffset: 0, commandBuffer: commandBuffer)
+
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
   }
 }
