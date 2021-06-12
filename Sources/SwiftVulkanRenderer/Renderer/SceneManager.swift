@@ -30,5 +30,7 @@ public class SceneManager {
     renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<MemoryLayout<Float>.size * 16, dstOffset: 0, commandBuffer: commandBuffer)
 
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
+
+    try renderer.updateSceneDescriptorSet()
   }
 }

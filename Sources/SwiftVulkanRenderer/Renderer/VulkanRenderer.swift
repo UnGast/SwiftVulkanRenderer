@@ -448,7 +448,7 @@ public class VulkanRenderer {
 
   func createUniformBuffers() throws {
     uniformSceneBuffer = try uniformMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
-    uniformSceneStagingBuffer = try uniformMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_TRANSFER_SRC_BIT.rawValue))
+    uniformSceneStagingBuffer = try uniformStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_TRANSFER_SRC_BIT.rawValue))
   }
 
   func createDescriptorPool() throws {
@@ -487,7 +487,7 @@ public class VulkanRenderer {
       sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       pNext: nil,
       flags: 0,
-      bindingCount: 1,
+      bindingCount: UInt32(bindings.count),
       pBindings: bindings
     )
 
@@ -511,7 +511,9 @@ public class VulkanRenderer {
     vkAllocateDescriptorSets(device, &allocateInfo, &sceneDescriptorSet)
 
     self.sceneDescriptorSet = sceneDescriptorSet!
+  }
 
+  func updateSceneDescriptorSet() throws {
     var viewMatrixBufferInfo = VkDescriptorBufferInfo(
       buffer: uniformSceneBuffer.buffer,
       offset: 0,
@@ -1060,7 +1062,7 @@ public class VulkanRenderer {
       commandBuffer.drawIndexed(indexCount: meshDrawInfo.indicesCount, instanceCount: 1, firstIndex: meshDrawInfo.indicesStartIndex, vertexOffset: 0, firstInstance: 0)
     }*/
 
-    commandBuffer.bindVertexBuffers(firstBinding: 0, buffers: [sceneDrawingManager.sceneDrawInfo.vertexBuffer.buffer], offsets: [0])
+    eommandBuffer.bindVertexBuffers(firstBinding: 0, buffers: [sceneDrawingManager.sceneDrawInfo.vertexBuffer.buffer], offsets: [0])
     commandBuffer.bindIndexBuffer(buffer: sceneDrawingManager.sceneDrawInfo.indexBuffer.buffer, offset: 0, indexType: VK_INDEX_TYPE_UINT32)
 
     for gameObject in gameObjects {

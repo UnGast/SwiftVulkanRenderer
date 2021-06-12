@@ -3,7 +3,7 @@
 
 layout (location=0) in vec3 inPos;
 
-layout(set = 0, binding = 0) uniform SceneParams {
+layout(binding = 0) uniform SceneParams {
     mat4 viewMatrix;
 };
 
