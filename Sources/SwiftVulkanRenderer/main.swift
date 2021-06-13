@@ -72,6 +72,7 @@ var frameCount = 0
 var cameraPitch = Float(0)
 var cameraYaw = Float(0)
 while !quit {
+    try renderer?.sceneManager.updateSceneCamera()
     try renderer?.draw()
     frameCount += 1
 

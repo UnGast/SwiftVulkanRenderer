@@ -1,4 +1,5 @@
 import Vulkan
+import GfxMath
 
 public class SceneManager {
   let renderer: VulkanRenderer
@@ -31,12 +32,9 @@ public class SceneManager {
   public func updateSceneCamera() throws {
     var commandBuffer = try renderer.beginSingleTimeCommands()
 
-    try renderer.uniformSceneStagingBuffer.store([
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1
-    ])
+    let viewTransformation = Matrix4<Float>.viewTransformation(up: scene.camera.up, right: scene.camera.right, front: scene.camera.forward, translation: scene.camera.position)
+
+    try renderer.uniformSceneStagingBuffer.store(viewTransformation.elements)
     renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<MemoryLayout<Float>.size * 16, dstOffset: 0, commandBuffer: commandBuffer)
 
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
