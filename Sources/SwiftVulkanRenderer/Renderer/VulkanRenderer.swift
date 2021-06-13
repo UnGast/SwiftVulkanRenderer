@@ -3,6 +3,7 @@ import HID
 import Vulkan
 
 public class VulkanRenderer {
+  let scene: Scene
   let instance: VkInstance
   let surface: VkSurfaceKHR
 
@@ -37,7 +38,8 @@ public class VulkanRenderer {
   @Deferred var geometryStagingMemoryManager: MemoryManager
   @Deferred var sceneManager: SceneManager
 
-  public init(instance: VkInstance, surface: VkSurfaceKHR) throws {
+  public init(scene: Scene, instance: VkInstance, surface: VkSurfaceKHR) throws {
+    self.scene = scene
     self.instance = instance
     self.surface = surface
 

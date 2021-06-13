@@ -84,8 +84,8 @@ while !quit {
         
         case .window:
             if case let .resizedTo(newSize) = event.window.action {
-                renderer = try VulkanRenderer(instance: surface.instance, surface: surface.surface)
-                try renderer?.sceneManager.update(scene: scene)
+                renderer = try VulkanRenderer(scene: scene, instance: surface.instance, surface: surface.surface)
+                try renderer?.sceneManager.updateSceneData()
             }
 
         case .pointerMotion:
