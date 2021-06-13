@@ -96,23 +96,22 @@ public class VulkanRenderer {
   }
 
   func getQueueFamilyIndex() throws {
-    /*var queueFamilyIndex: UInt32?
-    for properties in physicalDevice.queueFamilyProperties {
-      if try! physicalDevice.hasSurfaceSupport(
-        for: properties,
-        surface:
-          surface
-      ) && properties.queueCount & QueueFamilyProperties.Flags.graphicsBit.rawValue == QueueFamilyProperties.Flags.graphicsBit.rawValue {
-        queueFamilyIndex = properties.index
+    var queueFamilyCount = UInt32(0)
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nil)
+    var queueFamilyProperties = Array(repeating: VkQueueFamilyProperties(), count: Int(queueFamilyCount))
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, &queueFamilyProperties)
+
+    for (index, properties) in queueFamilyProperties.enumerated() {
+      var supported = UInt32(0)
+      vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, UInt32(index), surface, &supported)
+
+      if supported > 0 {
+        self.queueFamilyIndex = UInt32(index)
+        return
       }
     }
 
-    guard let queueFamilyIndexUnwrapped = queueFamilyIndex else {
-      throw VulkanRendererError.noSuitableQueueFamily
-    }*/
-
-    self.queueFamilyIndex = 0 // TODO: GENERALIZE
-    //self.queueFamilyIndex = queueFamilyIndexUnwrapped
+    fatalError("no suitable queue family found")
   }
 
   func createDevice() throws {
@@ -1109,7 +1108,6 @@ public class VulkanRenderer {
     var currentSwapchainImageIndex: UInt32 = 0
     var acquireResult = vkAcquireNextImageKHR(device, swapchain, 0, nil, acquireFence!, &currentSwapchainImageIndex)
 
-    print("ACQUIRE RESULT", acquireResult)
     if acquireResult == VK_ERROR_OUT_OF_DATE_KHR {
       fatalError("swapchain out of date")
     }
