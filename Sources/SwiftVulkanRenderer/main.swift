@@ -69,8 +69,15 @@ var renderer: VulkanRenderer? = nil
 
 var frameCount = 0
 
+var keysActive: [KeyCode: Bool] = [
+    .LEFT: false,
+    .RIGHT: false,
+    .UP: false,
+    .DOWN: false
+]
+
 while !quit {
-    try renderer?.sceneManager.updateSceneCamera()
+    try renderer?.sceneManager.updateSceneUniform()
     try renderer?.draw()
     frameCount += 1
 
@@ -93,9 +100,39 @@ while !quit {
             scene.camera.pitch -= eventData.y / 360
             scene.camera.pitch = min(89 / 360, max(-89 / 360, scene.camera.pitch))
             scene.camera.yaw += Float(eventData.deltaX) / 360
+        
+        case .keyboard:
+            let eventData = event.keyboard
+            
+            if let key = eventData.virtualKey {
+                if keysActive[key] != nil {
+                    keysActive[key] = eventData.state == .pressed ? true : false
+                }
+            }
 
-            /*
-        renderer.raytracingRenderer.camera.forward = forwardDirection
+        default:
+            break
+        }
+    }
+
+    var deltaMove = FVec3.zero
+    var stepSize: Float = 0.01
+    if keysActive[.UP]! {
+        deltaMove += scene.camera.forward * stepSize
+    }
+    if keysActive[.DOWN]! {
+        deltaMove -= scene.camera.forward * stepSize
+    }
+    if keysActive[.LEFT]! {
+        deltaMove -= scene.camera.right * stepSize
+    }
+    if keysActive[.RIGHT]! {
+        deltaMove += scene.camera.right * stepSize
+    }
+    scene.camera.position += deltaMove
+
+    /*
+    renderer.raytracingRenderer.camera.forward = forwardDirection
         if let keyDown = $0 as? KeyDownEvent {
         let speed = Float(100)
         var move: FVec3 = .zero
@@ -117,11 +154,6 @@ while !quit {
     } else if let mouseMove = $0 as? MouseMoveEvent {
         
     }*/
-
-        default:
-            break
-        }
-    }
 }
 
 Platform.quit()
