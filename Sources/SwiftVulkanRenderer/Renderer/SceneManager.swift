@@ -19,26 +19,45 @@ public class SceneManager {
   }
 
   public func updateSceneData() throws {
-    vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.vertices.count }
-    try stagingBuffer.store(scene.objects.flatMap { $0.mesh.vertices.flatMap { $0.position.elements } })
+    vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.flatVertices.count }
+    try stagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.position.elements } })
 
     var commandBuffer = try renderer.beginSingleTimeCommands()
     vertexBuffer.copy(from: stagingBuffer, srcRange: 0..<stagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
 
-    try updateSceneCamera()
+    try updateSceneUniform()
  }
 
-  public func updateSceneCamera() throws {
+  public func updateSceneUniform() throws {
     var commandBuffer = try renderer.beginSingleTimeCommands()
 
-    let viewTransformation = Matrix4<Float>.viewTransformation(up: scene.camera.up, right: scene.camera.right, front: scene.camera.forward, translation: scene.camera.position)
+    let sceneUniformObject = SceneUniformObject(
+      viewMatrix: Matrix4<Float>.viewTransformation(up: scene.camera.up, right: scene.camera.right, front: scene.camera.forward, translation: scene.camera.position),
+      projectionMatrix: newProjection(aspectRatio: 1, fov: .pi / 2, near: 0.01, far: 1000)
+    )
 
-    try renderer.uniformSceneStagingBuffer.store(viewTransformation.elements)
-    renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<MemoryLayout<Float>.size * 16, dstOffset: 0, commandBuffer: commandBuffer)
+    try renderer.uniformSceneStagingBuffer.store(sceneUniformObject.serializedData)
+    renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<SceneUniformObject.serializedSize, dstOffset: 0, commandBuffer: commandBuffer)
 
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
 
     try renderer.updateSceneDescriptorSet()
   }
+}
+
+public func newProjection(aspectRatio: Float, fov: Float, near: Float, far: Float) -> FMat4 {
+  //let screenDistance = Float(1)
+  //let screenWidth = screenDistance * tan(fov / 2)
+  //let screenHeight = screenWidth / aspectRatio 
+
+  let f = cos(fov / 4) / sin(fov / 4)
+  print("F", f)
+
+  return FMat4([
+    f, 0, 0, 0,
+    0, -f, 0, 0,
+    0, 0, far/(far - near), -(far * near / (far - near)),
+    0, 0, 0, 1
+  ])
 }

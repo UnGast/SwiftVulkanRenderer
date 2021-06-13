@@ -18,4 +18,8 @@ public class Mesh: Hashable {
   public static func == (lhs: Mesh, rhs: Mesh) -> Bool {
     lhs === rhs
   }
+
+  public var flatVertices: [Vertex] {
+    indices.map { vertices[Int($0)] }
+  }
 }

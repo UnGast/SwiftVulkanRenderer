@@ -515,10 +515,10 @@ public class VulkanRenderer {
   }
 
   func updateSceneDescriptorSet() throws {
-    var viewMatrixBufferInfo = VkDescriptorBufferInfo(
+    var bufferInfo = VkDescriptorBufferInfo(
       buffer: uniformSceneBuffer.buffer,
       offset: 0,
-      range: VkDeviceSize(MemoryLayout<Float>.size * 16)
+      range: VkDeviceSize(SceneUniformObject.serializedSize)
     )
     var descriptorWrites = [
       VkWriteDescriptorSet(
@@ -530,7 +530,7 @@ public class VulkanRenderer {
         descriptorCount: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         pImageInfo: nil,
-        pBufferInfo: &viewMatrixBufferInfo,
+        pBufferInfo: &bufferInfo,
         pTexelBufferView: nil
       )
     ]
