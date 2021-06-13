@@ -69,8 +69,6 @@ var renderer: VulkanRenderer? = nil
 
 var frameCount = 0
 
-var cameraPitch = Float(0)
-var cameraYaw = Float(0)
 while !quit {
     try renderer?.sceneManager.updateSceneCamera()
     try renderer?.draw()
@@ -92,17 +90,9 @@ while !quit {
         case .pointerMotion:
             let eventData = event.pointerMotion
 
-            cameraPitch -= eventData.y / 360
-            cameraPitch = min(89 / 360, max(-89 / 360, cameraPitch))
-            cameraYaw += Float(eventData.deltaX) / 360
-
-            let forwardDirection = FVec3(
-                sin(cameraYaw),
-                sin(cameraPitch),
-                cos(cameraPitch) + cos(cameraYaw)
-            ).normalized()
-            
-            scene.camera.forward = forwardDirection
+            scene.camera.pitch -= eventData.y / 360
+            scene.camera.pitch = min(89 / 360, max(-89 / 360, scene.camera.pitch))
+            scene.camera.yaw += Float(eventData.deltaX) / 360
 
             /*
         renderer.raytracingRenderer.camera.forward = forwardDirection

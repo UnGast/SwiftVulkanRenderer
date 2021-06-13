@@ -2,31 +2,44 @@ import Foundation
 import GfxMath
 
 public final class Camera {
-    public var frameCount: UInt32
     public var position: FVec3
-    public var up: FVec3
-    public var right: FVec3
-    public var forward: FVec3 {
+
+    let worldUp: FVec3
+    public var pitch: Float {
         didSet {
             updateDirections()
         }
     }
+    public var yaw: Float {
+        didSet {
+            updateDirections()
+        }
+    }
+    public private(set) var up: FVec3
+    public private(set) var right: FVec3
+    public private(set) var forward: FVec3
 
-    public init(frameCount: UInt32, position: FVec3, direction: FVec3) {
-        self.frameCount = frameCount
-        self.position = position
-        self.forward = direction
+    public init(worldUp: FVec3 = FVec3(0, 1, 0)) {
+        self.position = .zero
+
+        self.worldUp = worldUp
+        self.pitch = 0
+        self.yaw = 0
         self.up = .zero
         self.right = .zero
+        self.forward = .zero
+
         self.updateDirections()
     }
 
     private func updateDirections() {
-        self.right = FVec3(0, 1, 0).cross(forward)
-        self.up = forward.cross(right)
-    }
+        forward = FVec3(
+            sin(yaw),
+            sin(pitch),
+            cos(pitch) + cos(yaw)
+        ).normalized()
 
-    public static var serializationMeasureInstance: Camera {
-        Camera(frameCount: 0, position: .zero, direction: .zero)
+        right = worldUp.cross(forward)
+        up = forward.cross(right)
     }
 }
