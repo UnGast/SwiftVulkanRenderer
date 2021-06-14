@@ -36,10 +36,10 @@ public final class Camera {
         forward = FVec3(
             sin(yaw),
             sin(pitch),
-            cos(pitch) + cos(yaw)
+            cos(pitch) * cos(yaw)
         ).normalized()
 
-        right = worldUp.cross(forward)
-        up = forward.cross(right)
+        right = forward.cross(worldUp).normalized()
+        up = right.cross(forward).normalized()
     }
 }

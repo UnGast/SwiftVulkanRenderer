@@ -97,7 +97,7 @@ while !quit {
         case .pointerMotion:
             let eventData = event.pointerMotion
 
-            scene.camera.pitch -= eventData.y / 360
+            scene.camera.pitch -= eventData.deltaY / 360
             scene.camera.pitch = min(89 / 360, max(-89 / 360, scene.camera.pitch))
             scene.camera.yaw += Float(eventData.deltaX) / 360
         
