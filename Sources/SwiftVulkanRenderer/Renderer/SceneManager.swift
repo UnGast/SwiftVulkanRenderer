@@ -33,7 +33,7 @@ public class SceneManager {
     var commandBuffer = try renderer.beginSingleTimeCommands()
 
     let sceneUniformObject = SceneUniformObject(
-      viewMatrix: Matrix4<Float>.viewTransformation(up: scene.camera.up, right: scene.camera.right, front: scene.camera.forward, translation: scene.camera.position),
+      viewMatrix: Matrix4<Float>.viewTransformation(up: scene.camera.up, right: scene.camera.right, front: scene.camera.forward, translation: -scene.camera.position),
       projectionMatrix: newProjection(aspectRatio: 1, fov: .pi / 4, near: 0.01, far: 1000)
     )
 
@@ -52,7 +52,6 @@ public func newProjection(aspectRatio: Float, fov: Float, near: Float, far: Floa
   //let screenHeight = screenWidth / aspectRatio 
 
   let f = cos(fov / 4) / sin(fov / 4)
-  print("F", f)
 
   let xMax = Float(tan(fov))
   let yMax = xMax * aspectRatio

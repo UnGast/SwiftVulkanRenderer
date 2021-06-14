@@ -39,7 +39,7 @@ public final class Camera {
             cos(pitch) * cos(yaw)
         ).normalized()
 
-        right = forward.cross(worldUp).normalized()
-        up = right.cross(forward).normalized()
+        right = worldUp.cross(forward).normalized()
+        up = forward.cross(right).normalized()
     }
 }
