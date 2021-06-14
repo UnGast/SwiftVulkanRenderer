@@ -100,7 +100,6 @@ while !quit {
             scene.camera.pitch -= eventData.deltaY / 360
             scene.camera.pitch = min(89 / 360, max(-89 / 360, scene.camera.pitch))
             scene.camera.yaw += eventData.deltaX / 360
-            print("YAW", scene.camera.yaw)
         
         case .keyboard:
             let eventData = event.keyboard
