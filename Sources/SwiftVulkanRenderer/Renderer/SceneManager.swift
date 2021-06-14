@@ -34,7 +34,7 @@ public class SceneManager {
 
     let sceneUniformObject = SceneUniformObject(
       viewMatrix: Matrix4<Float>.viewTransformation(up: scene.camera.up, right: scene.camera.right, front: scene.camera.forward, translation: scene.camera.position),
-      projectionMatrix: newProjection(aspectRatio: 1, fov: .pi / 2, near: 0.01, far: 1000)
+      projectionMatrix: newProjection(aspectRatio: 1, fov: .pi / 4, near: 0.01, far: 1000)
     )
 
     try renderer.uniformSceneStagingBuffer.store(sceneUniformObject.serializedData)
@@ -54,10 +54,13 @@ public func newProjection(aspectRatio: Float, fov: Float, near: Float, far: Floa
   let f = cos(fov / 4) / sin(fov / 4)
   print("F", f)
 
+  let xMax = Float(tan(fov))
+  let yMax = xMax * aspectRatio
+
   return FMat4([
-    f, 0, 0, 0,
-    0, -f, 0, 0,
+    1/xMax, 0, 0, 0,
+    0, -1/yMax, 0, 0,
     0, 0, far/(far - near), -(far * near / (far - near)),
-    0, 0, 0, 1
+    0, 0, 1, 0
   ])
 }

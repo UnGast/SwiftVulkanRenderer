@@ -20,6 +20,13 @@ vec3 colors[3] = vec3[](
     vec3(0.0, 0.0, 1.0)
 );
 
+mat4 proj = mat4(
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 0.2, 1,
+    0, 0, -1, 0
+);
+
 void main() {
     gl_Position = projectionMatrix * viewMatrix * vec4(inPos, 1);
 }

@@ -10,6 +10,6 @@ public struct SceneUniformObject {
 	}
 
 	public var serializedData: [Float] {
-		viewMatrix.elements + projectionMatrix.elements
+		viewMatrix.transposed.elements + projectionMatrix.transposed.elements
 	}
 }
