@@ -457,6 +457,10 @@ public class VulkanRenderer {
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         descriptorCount: 1
+      ),
+      VkDescriptorPoolSize(
+        type: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        descriptorCount: 1
       )
     ]
     var createInfo = VkDescriptorPoolCreateInfo(
@@ -464,7 +468,7 @@ public class VulkanRenderer {
       pNext: nil,
       flags: 0,
       maxSets: 1,
-      poolSizeCount: 1,
+      poolSizeCount: UInt32(poolSizes.count),
       pPoolSizes: &poolSizes
     )
     var descriptorPool: VkDescriptorPool? = nil
@@ -475,15 +479,22 @@ public class VulkanRenderer {
   }
 
   func createSceneDescriptorSetLayout() throws {
-    var viewMatrixBinding = VkDescriptorSetLayoutBinding(
-      binding: 0,
-      descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      descriptorCount: 1,
-      stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue,
-      pImmutableSamplers: nil
-    )
-
-    var bindings = [viewMatrixBinding]
+    var bindings = [
+      VkDescriptorSetLayoutBinding(
+        binding: 0,
+        descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue,
+        pImmutableSamplers: nil
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 1,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue,
+        pImmutableSamplers: nil
+      )
+    ]
     var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
       sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       pNext: nil,
@@ -515,11 +526,17 @@ public class VulkanRenderer {
   }
 
   func updateSceneDescriptorSet() throws {
-    var bufferInfo = VkDescriptorBufferInfo(
+    var uniformObjectBufferInfo = VkDescriptorBufferInfo(
       buffer: uniformSceneBuffer.buffer,
       offset: 0,
       range: VkDeviceSize(SceneUniformObject.serializedSize)
     )
+    var objectBufferInfo = VkDescriptorBufferInfo(
+      buffer: sceneManager.objectBuffer.buffer,
+      offset: 0,
+      range: VkDeviceSize(sceneManager.objectBuffer.size)
+    )
+
     var descriptorWrites = [
       VkWriteDescriptorSet(
         sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -530,7 +547,19 @@ public class VulkanRenderer {
         descriptorCount: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         pImageInfo: nil,
-        pBufferInfo: &bufferInfo,
+        pBufferInfo: &uniformObjectBufferInfo,
+        pTexelBufferView: nil
+      ),
+      VkWriteDescriptorSet(
+        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        pNext: nil,
+        dstSet: sceneDescriptorSet,
+        dstBinding: 1,
+        dstArrayElement: 0,
+        descriptorCount: 1,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        pImageInfo: nil,
+        pBufferInfo: &objectBufferInfo,
         pTexelBufferView: nil
       )
     ]

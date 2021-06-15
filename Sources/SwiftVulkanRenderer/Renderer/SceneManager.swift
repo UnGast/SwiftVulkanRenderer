@@ -25,11 +25,20 @@ public class SceneManager {
   }
 
   public func updateSceneData() throws {
+    var commandBuffer = try renderer.beginSingleTimeCommands()
+
     vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.flatVertices.count }
     try vertexStagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.position.elements } })
-
-    var commandBuffer = try renderer.beginSingleTimeCommands()
     vertexBuffer.copy(from: vertexStagingBuffer, srcRange: 0..<vertexStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
+
+    try objectStagingBuffer.store(FMat4([
+      1, 0, 0, 10,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    ]).transposed.elements)
+    objectBuffer.copy(from: objectStagingBuffer, srcRange: 0..<objectStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
+
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
 
     try updateSceneUniform()
