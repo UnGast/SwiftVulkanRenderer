@@ -4,7 +4,12 @@ public class ManagedGPUBuffer {
     let memory: ManagedGPUMemory
     public var buffer: VkBuffer
     public var range: Range<VkDeviceSize>
-    var dataPointer: UnsafeMutableRawPointer? = nil
+    var dataPointer: UnsafeMutableRawPointer {
+        if memory.dataPointer == nil {
+            memory.map()
+        }
+        return memory.dataPointer!.advanced(by: Int(range.lowerBound))
+    }
 
     public var size: Int {
         range.count
@@ -16,22 +21,10 @@ public class ManagedGPUBuffer {
         self.range = range
     }
 
-    func map() {
-        if dataPointer == nil {
-            vkMapMemory(memory.manager.renderer.device, memory.memory, range.lowerBound, VkDeviceSize(range.count), 0, &dataPointer)
-        }
-    }
-
-    func unmap() {
-
-    }
-
     public func store(_ data: [Float]) throws {
-        map()
-
         let dataSize = MemoryLayout<Float>.size * data.count
 
-        dataPointer?.copyMemory(from: data, byteCount: dataSize)
+        dataPointer.copyMemory(from: data, byteCount: dataSize)
     }
 
     public func copy(from srcBuffer: ManagedGPUBuffer, srcRange: Range<Int>, dstOffset: Int, commandBuffer: VkCommandBuffer) {
@@ -41,9 +34,5 @@ public class ManagedGPUBuffer {
             size: VkDeviceSize(srcRange.count)
         )
         vkCmdCopyBuffer(commandBuffer, srcBuffer.buffer, buffer, 1, &region)
-    }
-
-    deinit {
-        unmap()
     }
 }
