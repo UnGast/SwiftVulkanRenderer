@@ -13,17 +13,19 @@ public class MemoryManager {
   }
 
   func allocateMemory() throws {
+    let size = 10 * 1024 * 1024
+
     var allocateInfo = VkMemoryAllocateInfo(
       sType: VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       pNext: nil,
-      allocationSize: 1024 * 1024,
+      allocationSize: VkDeviceSize(size),
       memoryTypeIndex: memoryTypeIndex
     )
 
     var deviceMemory: VkDeviceMemory? = nil
     vkAllocateMemory(renderer.device, &allocateInfo, nil, &deviceMemory)
 
-    self.memory = ManagedGPUMemory(manager: self, memory: deviceMemory!)
+    self.memory = ManagedGPUMemory(manager: self, memory: deviceMemory!, size: size)
   }
 
   public func getBuffer(size: Int, usage: VkBufferUsageFlagBits) throws -> ManagedGPUBuffer {
@@ -44,22 +46,21 @@ public class MemoryManager {
     var memoryRequirements = VkMemoryRequirements()
     vkGetBufferMemoryRequirements(renderer.device, buffer, &memoryRequirements)
 
-    let memoryOffset = VkDeviceSize(0)
+    let memoryOffset = VkDeviceSize(memory.usedRanges.last?.upperBound ?? 0)
     let memorySize = memoryRequirements.size
+    let memoryEnd = memoryOffset + memorySize
+
+    guard Int(memoryEnd) < memory.size else {
+      throw MemoryCapacityExceededError()
+    }
 
     vkBindBufferMemory(renderer.device, buffer, memory.memory, memoryOffset)
 
-    return ManagedGPUBuffer(memory: memory, buffer: buffer!, range: memoryOffset..<(memoryOffset + memorySize))
+    memory.usedRanges.append(Int(memoryOffset)..<Int(memoryEnd))
+
+    return ManagedGPUBuffer(memory: memory, buffer: buffer!, range: memoryOffset..<memoryEnd)
   }
-}
 
-class ManagedGPUMemory {
-  unowned let manager: MemoryManager
-  let memory: VkDeviceMemory
-  let usedRanges: [Range<Int>] = []
-
-  public init(manager: MemoryManager, memory: VkDeviceMemory) {
-    self.manager = manager
-    self.memory = memory
+  public struct MemoryCapacityExceededError: Error {
   }
 }

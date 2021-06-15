@@ -2,10 +2,10 @@ import GfxMath
 
 public class SceneObject {
     public var mesh: Mesh
-    public var transformation: [[Float]] 
+    public var transformationMatrix: FMat4
 
-    public init(mesh: Mesh, transformation: [[Float]]) {
+    public init(mesh: Mesh, transformationMatrix: FMat4) {
         self.mesh = mesh
-        self.transformation = transformation
+        self.transformationMatrix = transformationMatrix
     }
 }

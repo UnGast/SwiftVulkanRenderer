@@ -1,3 +1,5 @@
+import Foundation
+import Dispatch
 import HID
 import Vulkan
 import Swim
@@ -63,7 +65,14 @@ guard let surface = window.surface as? VLKWindowSurface else {
 let mainMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
 
 let scene = Scene()
-scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformation: [[1]]))
+scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: .identity))
+
+DispatchQueue.global().async {
+    while true {
+        scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: .identity))
+        sleep(1)
+    }
+}
 
 var renderer: VulkanRenderer? = nil
 

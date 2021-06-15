@@ -7,27 +7,33 @@ public class SceneManager {
     renderer.scene
   }
 
-  @Deferred var stagingBuffer: ManagedGPUBuffer
+  @Deferred var objectStagingBuffer: ManagedGPUBuffer
+  @Deferred var objectBuffer: ManagedGPUBuffer
+
+  @Deferred var vertexStagingBuffer: ManagedGPUBuffer
   @Deferred var vertexBuffer: ManagedGPUBuffer 
   var vertexCount: Int = 0
 
   public init(renderer: VulkanRenderer) throws {
     self.renderer = renderer
 
-    stagingBuffer = try renderer.geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+    objectStagingBuffer = try renderer.geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+    objectBuffer = try renderer.geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+
+    vertexStagingBuffer = try renderer.geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
     vertexBuffer = try renderer.geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_VERTEX_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
   }
 
   public func updateSceneData() throws {
     vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.flatVertices.count }
-    try stagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.position.elements } })
+    try vertexStagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.position.elements } })
 
     var commandBuffer = try renderer.beginSingleTimeCommands()
-    vertexBuffer.copy(from: stagingBuffer, srcRange: 0..<stagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
+    vertexBuffer.copy(from: vertexStagingBuffer, srcRange: 0..<vertexStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
 
     try updateSceneUniform()
- }
+  }
 
   public func updateSceneUniform() throws {
     var commandBuffer = try renderer.beginSingleTimeCommands()

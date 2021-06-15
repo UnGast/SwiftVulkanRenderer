@@ -36,7 +36,7 @@ public class ManagedGPUBuffer {
 
     public func copy(from srcBuffer: ManagedGPUBuffer, srcRange: Range<Int>, dstOffset: Int, commandBuffer: VkCommandBuffer) {
         var region = VkBufferCopy(
-            srcOffset: VkDeviceSize(range.lowerBound),
+            srcOffset: VkDeviceSize(srcRange.lowerBound),
             dstOffset: VkDeviceSize(dstOffset),
             size: VkDeviceSize(srcRange.count)
         )
