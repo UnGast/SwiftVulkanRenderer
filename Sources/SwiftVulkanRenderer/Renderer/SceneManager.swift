@@ -39,7 +39,10 @@ public class SceneManager {
     }
     objectBuffer.copy(from: objectStagingBuffer, srcRange: 0..<objectStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
 
-    try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
+    var signalSemaphore: VkSemaphore = VkSemaphore.create(device: renderer.device)
+    renderer.nextDrawSubmitWaits.append((signalSemaphore, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT.rawValue))
+
+    try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, signalSemaphores: [signalSemaphore])
   }
 
   public func updateSceneUniform() throws {

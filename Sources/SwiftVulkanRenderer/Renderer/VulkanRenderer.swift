@@ -37,6 +37,8 @@ public class VulkanRenderer {
   @Deferred var geometryMemoryManager: MemoryManager
   @Deferred var geometryStagingMemoryManager: MemoryManager
   @Deferred var sceneManager: SceneManager
+  
+  var nextDrawSubmitWaits: [(VkSemaphore, VkPipelineStageFlags)] = []
 
   public init(scene: Scene, instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.scene = scene
@@ -963,7 +965,9 @@ public class VulkanRenderer {
     return commandBuffer!
   }
 
-  func endSingleTimeCommands(commandBuffer: VkCommandBuffer) throws {
+  /// ends command buffer and submits it
+  func endSingleTimeCommands(commandBuffer: VkCommandBuffer, signalSemaphores: [VkSemaphore] = []) throws {
+    var signalSemaphores = signalSemaphores as! [VkSemaphore?]
     vkEndCommandBuffer(commandBuffer)
 
     var commandBuffers = [Optional(commandBuffer)]
@@ -975,8 +979,8 @@ public class VulkanRenderer {
       pWaitDstStageMask: nil,
       commandBufferCount: 1,
       pCommandBuffers: commandBuffers,
-      signalSemaphoreCount: 0,
-      pSignalSemaphores: nil
+      signalSemaphoreCount: UInt32(signalSemaphores.count),
+      pSignalSemaphores: signalSemaphores
     )
     vkQueueSubmit(queue, 1, &submitInfo, nil)
   }
@@ -1150,12 +1154,15 @@ public class VulkanRenderer {
     let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(currentSwapchainImageIndex))
 
     var submitCommandBuffers = [Optional(commandBuffer)]
+    var submitWaitSemaphores = self.nextDrawSubmitWaits.map { $0.0 } as! [Optional<VkSemaphore>]
+    var submitDstStageMasks = self.nextDrawSubmitWaits.map { $0.1 }
+    self.nextDrawSubmitWaits = []
     var submitInfo = VkSubmitInfo(
       sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
       pNext: nil,
-      waitSemaphoreCount: 0,
-      pWaitSemaphores: nil,
-      pWaitDstStageMask: nil,
+      waitSemaphoreCount: UInt32(submitWaitSemaphores.count),
+      pWaitSemaphores: submitWaitSemaphores,
+      pWaitDstStageMask: submitDstStageMasks,
       commandBufferCount: 1,
       pCommandBuffers: submitCommandBuffers,
       signalSemaphoreCount: 0,
