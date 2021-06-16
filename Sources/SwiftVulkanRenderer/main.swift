@@ -67,16 +67,26 @@ let mainMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
 let scene = Scene()
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: .identity))
 
-DispatchQueue.global().async {
-    while true {
-        scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: .identity))
-        sleep(1)
-    }
-}
-
 var renderer: VulkanRenderer? = nil
 
 var frameCount = 0
+
+DispatchQueue.global().async {
+    var nextX = Float(0)
+    while true {
+        scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: FMat4([
+            1, 0, 0, nextX,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        ])))
+        nextX += 1
+        DispatchQueue.main.async {
+            try! renderer?.sceneManager.updateSceneContent()
+        }
+        sleep(1)
+    }
+}
 
 var keysActive: [KeyCode: Bool] = [
     .LEFT: false,
@@ -87,10 +97,11 @@ var keysActive: [KeyCode: Bool] = [
 
 func setupRenderer() throws {
     renderer = try VulkanRenderer(scene: scene, instance: surface.instance, surface: surface.surface)
-    try renderer?.sceneManager.updateSceneData()
+    try renderer?.sceneManager.updateSceneContent()
+    try renderer?.sceneManager.updateSceneUniform()
 }
 
-while !quit {
+func frame() throws {
     if renderer == nil && frameCount > 10 {
         usleep(2000 * 100)
         try setupRenderer()
@@ -151,29 +162,23 @@ while !quit {
     }
     scene.camera.position += deltaMove
 
-    /*
-    renderer.raytracingRenderer.camera.forward = forwardDirection
-        if let keyDown = $0 as? KeyDownEvent {
-        let speed = Float(100)
-        var move: FVec3 = .zero
-        let forward = renderer.raytracingRenderer.camera.forward
-        let right = renderer.raytracingRenderer.camera.right
-        switch keyDown.key {
-            case .arrowUp:
-                move += forward * speed
-            case .arrowDown:
-                move -= forward * speed
-            case .arrowLeft:
-                move -= right * speed
-            case .arrowRight:
-                move += right * speed
-            default: break
+    if quit {
+        exit(0)
+    } else {
+        DispatchQueue.main.async {
+            try! frame()
         }
-
-        renderer.raytracingRenderer.camera.position += move
-    } else if let mouseMove = $0 as? MouseMoveEvent {
-        
-    }*/
+    }
 }
+
+DispatchQueue.main.async {
+    try! frame()
+}
+
+#if os(macOS)
+CFRunLoopRun()
+#else
+dispatchMain()
+#endif
 
 Platform.quit()

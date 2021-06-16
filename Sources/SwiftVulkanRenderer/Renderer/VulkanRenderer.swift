@@ -1046,7 +1046,10 @@ public class VulkanRenderer {
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, vertexOffsets)
     var descriptorSets = [Optional(sceneDescriptorSet)]
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 0, UInt32(descriptorSets.count), descriptorSets, 0, nil)
-    vkCmdDraw(commandBuffer, UInt32(sceneManager.vertexCount), 1, 0, 0)
+
+    for (index, object) in scene.objects.enumerated() {
+      vkCmdDraw(commandBuffer, UInt32(sceneManager.vertexCount), 1, 0, UInt32(index))
+    }
 
     vkCmdEndRenderPass(commandBuffer)
 

@@ -3,7 +3,7 @@ import GfxMath
 public struct SceneObjectDrawInfo {
 	public var transformationMatrix: FMat4
 
-	public var serializedSize: Int {
+	public static var serializedSize: Int {
 		MemoryLayout<Float>.size * 16
 	}
 

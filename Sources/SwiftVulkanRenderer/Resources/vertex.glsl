@@ -28,5 +28,5 @@ vec3 colors[3] = vec3[](
 );
 
 void main() {
-    gl_Position = projectionMatrix * viewMatrix * objectInfo[0].transformationMatrix * vec4(inPos, 1);
+    gl_Position = projectionMatrix * viewMatrix * objectInfo[gl_InstanceIndex].transformationMatrix * vec4(inPos, 1);
 }
