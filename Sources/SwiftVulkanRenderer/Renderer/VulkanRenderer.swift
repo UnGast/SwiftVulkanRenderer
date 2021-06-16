@@ -39,6 +39,7 @@ public class VulkanRenderer {
   @Deferred var sceneManager: SceneManager
   
   var nextDrawSubmitWaits: [(VkSemaphore, VkPipelineStageFlags)] = []
+  var currentDrawFinishSemaphore: VkSemaphore? = nil
 
   public init(scene: Scene, instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.scene = scene
@@ -966,17 +967,19 @@ public class VulkanRenderer {
   }
 
   /// ends command buffer and submits it
-  func endSingleTimeCommands(commandBuffer: VkCommandBuffer, signalSemaphores: [VkSemaphore] = []) throws {
+  func endSingleTimeCommands(commandBuffer: VkCommandBuffer, waitSemaphores: [VkSemaphore] = [], signalSemaphores: [VkSemaphore] = []) throws {
+    var waitSemaphores = waitSemaphores as! [VkSemaphore?]
     var signalSemaphores = signalSemaphores as! [VkSemaphore?]
+    var submitDstStageMasks = waitSemaphores.map { _ in VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT.rawValue }
     vkEndCommandBuffer(commandBuffer)
 
     var commandBuffers = [Optional(commandBuffer)]
     var submitInfo = VkSubmitInfo(
       sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
       pNext: nil,
-      waitSemaphoreCount: 0,
-      pWaitSemaphores: nil,
-      pWaitDstStageMask: nil,
+      waitSemaphoreCount: UInt32(waitSemaphores.count),
+      pWaitSemaphores: waitSemaphores,
+      pWaitDstStageMask: submitDstStageMasks,
       commandBufferCount: 1,
       pCommandBuffers: commandBuffers,
       signalSemaphoreCount: UInt32(signalSemaphores.count),
@@ -1156,6 +1159,8 @@ public class VulkanRenderer {
     var submitCommandBuffers = [Optional(commandBuffer)]
     var submitWaitSemaphores = self.nextDrawSubmitWaits.map { $0.0 } as! [Optional<VkSemaphore>]
     var submitDstStageMasks = self.nextDrawSubmitWaits.map { $0.1 }
+    self.currentDrawFinishSemaphore = VkSemaphore.create(device: device)
+    var submitSignalSemaphores = [currentDrawFinishSemaphore]
     self.nextDrawSubmitWaits = []
     var submitInfo = VkSubmitInfo(
       sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -1165,8 +1170,8 @@ public class VulkanRenderer {
       pWaitDstStageMask: submitDstStageMasks,
       commandBufferCount: 1,
       pCommandBuffers: submitCommandBuffers,
-      signalSemaphoreCount: 0,
-      pSignalSemaphores: nil
+      signalSemaphoreCount: 1,
+      pSignalSemaphores: submitSignalSemaphores
     )
     vkQueueSubmit(queue, 1, &submitInfo, nil)
 
