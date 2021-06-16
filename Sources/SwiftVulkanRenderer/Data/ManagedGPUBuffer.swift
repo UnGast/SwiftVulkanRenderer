@@ -21,10 +21,10 @@ public class ManagedGPUBuffer {
         self.range = range
     }
 
-    public func store(_ data: [Float]) throws {
+    public func store(_ data: [Float], offset: Int = 0) throws {
         let dataSize = MemoryLayout<Float>.size * data.count
 
-        dataPointer.copyMemory(from: data, byteCount: dataSize)
+        dataPointer.advanced(by: offset).copyMemory(from: data, byteCount: dataSize)
     }
 
     public func copy(from srcBuffer: ManagedGPUBuffer, srcRange: Range<Int>, dstOffset: Int, commandBuffer: VkCommandBuffer) {
