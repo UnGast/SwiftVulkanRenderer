@@ -11,7 +11,7 @@ layout(binding = 0) uniform SceneParams {
     mat4 viewMatrix;
     mat4 projectionMatrix;
 };
-layout(binding = 1) buffer ObjectInfoBuffer{
+layout(binding = 1) readonly buffer ObjectInfoBuffer{
     ObjectInfo objectInfo[];
 };
 

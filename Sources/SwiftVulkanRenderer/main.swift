@@ -85,7 +85,17 @@ var keysActive: [KeyCode: Bool] = [
     .DOWN: false
 ]
 
+func setupRenderer() throws {
+    renderer = try VulkanRenderer(scene: scene, instance: surface.instance, surface: surface.surface)
+    try renderer?.sceneManager.updateSceneData()
+}
+
 while !quit {
+    if renderer == nil && frameCount > 10 {
+        usleep(2000 * 100)
+        try setupRenderer()
+        usleep(2000 * 100)
+    }
     try renderer?.sceneManager.updateSceneUniform()
     try renderer?.draw()
     frameCount += 1
@@ -99,8 +109,9 @@ while !quit {
         
         case .window:
             if case let .resizedTo(newSize) = event.window.action {
-                renderer = try VulkanRenderer(scene: scene, instance: surface.instance, surface: surface.surface)
-                try renderer?.sceneManager.updateSceneData()
+                if renderer == nil {
+                    try setupRenderer()
+                }
             }
 
         case .pointerMotion:
