@@ -39,7 +39,7 @@ public class SceneManager {
     }
     objectBuffer.copy(from: objectStagingBuffer, srcRange: 0..<objectStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
     
-    let waitSemaphores = renderer.currentDrawFinishSemaphore != nil ? [renderer.currentDrawFinishSemaphore!] : []
+    let waitSemaphores = renderer.currentDrawFinishSemaphore1 != nil ? [renderer.currentDrawFinishSemaphore1!] : []
 
     let signalSemaphore: VkSemaphore = VkSemaphore.create(device: renderer.device)
     renderer.nextDrawSubmitWaits.append((signalSemaphore, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT.rawValue))
@@ -58,7 +58,9 @@ public class SceneManager {
     try renderer.uniformSceneStagingBuffer.store(sceneUniformObject.serializedData)
     renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<SceneUniformObject.serializedSize, dstOffset: 0, commandBuffer: commandBuffer)
 
-    try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
+    let waitSemaphores = renderer.currentDrawFinishSemaphore2 != nil ? [renderer.currentDrawFinishSemaphore2!] : []
+    
+    try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, waitSemaphores: waitSemaphores)
 
     try renderer.updateSceneDescriptorSet()
   }
