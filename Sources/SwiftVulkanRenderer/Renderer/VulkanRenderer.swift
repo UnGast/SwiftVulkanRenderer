@@ -39,8 +39,9 @@ public class VulkanRenderer {
   @Deferred var sceneManager: SceneManager
   
   var nextDrawSubmitWaits: [(VkSemaphore, VkPipelineStageFlags)] = []
-  var currentDrawFinishSemaphore1: VkSemaphore? = nil
-  var currentDrawFinishSemaphore2: VkSemaphore? = nil
+
+  typealias CurrentDrawFinishSemaphoreCallback = () -> [VkSemaphore]
+  var currentDrawFinishSemaphoreCallbacks = [CurrentDrawFinishSemaphoreCallback]()
 
   public init(scene: Scene, instance: VkInstance, surface: VkSurfaceKHR) throws {
     self.scene = scene
@@ -1160,10 +1161,10 @@ public class VulkanRenderer {
     var submitCommandBuffers = [Optional(commandBuffer)]
     var submitWaitSemaphores = self.nextDrawSubmitWaits.map { $0.0 } as! [Optional<VkSemaphore>]
     var submitDstStageMasks = self.nextDrawSubmitWaits.map { $0.1 }
-    self.currentDrawFinishSemaphore1 = VkSemaphore.create(device: device)
-    self.currentDrawFinishSemaphore2 = VkSemaphore.create(device: device)
-    var submitSignalSemaphores = [currentDrawFinishSemaphore1, currentDrawFinishSemaphore2]
     self.nextDrawSubmitWaits = []
+
+    var submitSignalSemaphores = currentDrawFinishSemaphoreCallbacks.flatMap { $0() } as! [VkSemaphore?]
+
     var submitInfo = VkSubmitInfo(
       sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
       pNext: nil,
