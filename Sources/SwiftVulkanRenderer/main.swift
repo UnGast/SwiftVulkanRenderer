@@ -66,6 +66,12 @@ let mainMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
 
 let scene = Scene()
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: .identity))
+scene.objects.append(SceneObject(mesh: Mesh.icosahedron(material: mainMaterial), transformationMatrix: FMat4([
+    1, 0, 0, -2,
+    0, 1, 0, 3,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+])))
 
 var renderer: VulkanRenderer? = nil
 
