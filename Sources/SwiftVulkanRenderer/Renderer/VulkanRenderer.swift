@@ -729,38 +729,9 @@ public class VulkanRenderer {
       basePipelineIndex: 0 
     )
     */
-    var vertexInputBindingDescription = VkVertexInputBindingDescription(
-      binding: 0,
-      stride: UInt32(MemoryLayout<Float>.size * 3),
-      inputRate: VK_VERTEX_INPUT_RATE_VERTEX
-    )
+    var vertexInputBindingDescription = Vertex.inputBindingDescription
 
-    var vertexInputAttributeDescriptions = [
-      VkVertexInputAttributeDescription(
-        location: 0,
-        binding: 0,
-        format: VK_FORMAT_R32G32B32_SFLOAT,
-        offset: 0
-      ),
-      /*VkVertexInputAttributeDescription(
-        location: 1,
-        binding: 0,
-        format: .R32G32B32_SFLOAT,
-        offset: UInt32(MemoryLayout<Float>.size * 3)
-      ),
-      VkVertexInputAttributeDescription(
-        location: 2,
-        binding: 0,
-        format: .R32G32B32A32_SFLOAT,
-        offset: UInt32(MemoryLayout<Float>.size * 6)
-      ),
-      VkVertexInputAttributeDescription(
-        location: 3,
-        binding: 0,
-        format: .R32G32_SFLOAT,
-        offset: UInt32(MemoryLayout<Float>.size * 10)
-      )*/
-    ]
+    var vertexInputAttributeDescriptions = Vertex.inputAttributeDescriptions
 
     var vertexInputStateInfo = VkPipelineVertexInputStateCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

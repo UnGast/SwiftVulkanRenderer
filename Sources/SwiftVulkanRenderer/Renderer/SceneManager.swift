@@ -39,7 +39,7 @@ public class SceneManager {
     var commandBuffer = try renderer.beginSingleTimeCommands()
 
     vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.flatVertices.count }
-    try vertexStagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.position.elements } })
+    try vertexStagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.serializedData } })
     vertexBuffer.copy(from: vertexStagingBuffer, srcRange: 0..<vertexStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
     
     let waitSemaphores = sceneContentWaitSemaphore != nil ? [sceneContentWaitSemaphore!] : []

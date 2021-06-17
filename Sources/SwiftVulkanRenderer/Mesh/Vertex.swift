@@ -4,16 +4,25 @@ import Vulkan
 
 public struct Vertex {
   public var position: FVec3
-  //public var normal: FVec3
+  public var normal: FVec3
   //public var color: Color
   //public var texCoords: FVec2
 
-  public init(position: FVec3/*, texCoords: FVec2*/ /*, normal: FVec3 = .zero, color: Color = .white, texCoord: FVec2 = .zero*/) {
+  public init(position: FVec3, normal: FVec3/*, texCoords: FVec2*/ /*, normal: FVec3 = .zero, color: Color = .white, texCoord: FVec2 = .zero*/) {
     self.position = position
+    self.normal = normal
     //self.texCoords = texCoords
     /*self.normal = normal
     self.color = color
     self.texCoord = texCoord*/
+  }
+
+  public var serializedData: [Float] {
+    position.elements + normal.elements
+  }
+
+  public static var serializedSize: Int {
+    MemoryLayout<Float>.size * 6
   }
 
   /*public static var serializationMeasureInstance: Vertex {
@@ -75,44 +84,44 @@ public struct Vertex {
       Float(color.b) / 255,
       Float(color.a) / 255
     ] + texCoord.elements*/
-  }
+  }*/*/
 
-  public static var inputBindingDescription: VertexInputBindingDescription {
-    VertexInputBindingDescription(
+  public static var inputBindingDescription: VkVertexInputBindingDescription {
+    VkVertexInputBindingDescription(
       binding: 0,
-      stride: UInt32(MemoryLayout<Float>.size * 12),
-      inputRate: .vertex
+      stride: UInt32(MemoryLayout<Float>.size * 6),
+      inputRate: VK_VERTEX_INPUT_RATE_VERTEX
     )
   }
 
-  public static var inputAttributeDescriptions: [VertexInputAttributeDescription] {
+  public static var inputAttributeDescriptions: [VkVertexInputAttributeDescription] {
     [
-      VertexInputAttributeDescription(
+      VkVertexInputAttributeDescription(
         location: 0,
         binding: 0,
-        format: .R32G32B32_SFLOAT,
+        format: VK_FORMAT_R32G32B32_SFLOAT,
         offset: 0
       ),
-      VertexInputAttributeDescription(
+      VkVertexInputAttributeDescription(
         location: 1,
         binding: 0,
-        format: .R32G32B32_SFLOAT,
+        format: VK_FORMAT_R32G32B32_SFLOAT,
         offset: UInt32(MemoryLayout<Float>.size * 3)
-      ),
-      VertexInputAttributeDescription(
+      ),/*
+      VkVertexInputAttributeDescription(
         location: 2,
         binding: 0,
         format: .R32G32B32A32_SFLOAT,
         offset: UInt32(MemoryLayout<Float>.size * 6)
       ),
-      VertexInputAttributeDescription(
+      VkVertexInputAttributeDescription(
         location: 3,
         binding: 0,
         format: .R32G32_SFLOAT,
         offset: UInt32(MemoryLayout<Float>.size * 10)
-      )
+      )*/
     ]
-  }*/*/
+  }
 }
 /*
 public struct Position2 {
