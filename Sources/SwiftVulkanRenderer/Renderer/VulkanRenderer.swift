@@ -489,7 +489,7 @@ public class VulkanRenderer {
         binding: 0,
         descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         descriptorCount: 1,
-        stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue,
+        stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue | VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: nil
       ),
       VkDescriptorSetLayoutBinding(

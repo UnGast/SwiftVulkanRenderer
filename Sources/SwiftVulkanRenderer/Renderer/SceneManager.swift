@@ -77,7 +77,7 @@ public class SceneManager {
       projectionMatrix: newProjection(aspectRatio: Float(renderer.swapchainExtent.height) / Float(renderer.swapchainExtent.width), fov: .pi / 4, near: 0.01, far: 1000)
     )
 
-    try renderer.uniformSceneStagingBuffer.store(sceneUniformObject.serializedData)
+    try renderer.uniformSceneStagingBuffer.store(sceneUniformObject)
     renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<SceneUniformObject.serializedSize, dstOffset: 0, commandBuffer: commandBuffer)
 
     let waitSemaphores = uniformWaitSemaphore != nil ? [uniformWaitSemaphore!] : []

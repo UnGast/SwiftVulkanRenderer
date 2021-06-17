@@ -8,10 +8,16 @@ layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
 layout(location=0) in vec4 fragColor;
 layout(location=2) in vec2 fragTexCoord;
-
-layout(set = 0, binding = 2) uniform LightingParams {
-
-};*/
+*/
+layout(set = 0, binding = 0) uniform SceneParams {
+  mat4 viewMatrix;
+  mat4 projectionMatrix;
+  vec3 ambientLightColor;
+  float ambientLightIntensity;
+  vec3 directionalLightDirection;
+  vec3 directionalLightColor;
+  float directionalLightIntensity;
+};
 
 layout(location=0) out vec4 outColor;
 
@@ -21,13 +27,9 @@ void main() {
     discard;
   }*/
 
-  float directionalLightFactor = max(dot(fragNormal, normalize(vec3(1, 1, 0))), 0);
-  vec3 directionalLightColor = vec3(1, 1, 1);
-  float directionalLightIntensity = 1;
+  float directionalLightFactor = max(dot(fragNormal, -directionalLightDirection), 0);
   vec3 directionalLightComponent = directionalLightColor * directionalLightIntensity * directionalLightFactor;
 
-  vec3 ambientLightColor = vec3(1, 1, 1);
-  float ambientLightIntensity = 0.1;
   vec3 ambientLightComponent = ambientLightIntensity * ambientLightColor;
 
   outColor = vec4((ambientLightComponent + directionalLightComponent), 1);

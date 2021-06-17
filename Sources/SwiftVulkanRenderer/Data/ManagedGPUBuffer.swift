@@ -1,3 +1,4 @@
+import Foundation
 import Vulkan
 
 public class ManagedGPUBuffer {
@@ -25,6 +26,17 @@ public class ManagedGPUBuffer {
         let dataSize = MemoryLayout<Float>.size * data.count
 
         dataPointer.advanced(by: offset).copyMemory(from: data, byteCount: dataSize)
+    }
+
+    public func store(_ data: Data, offset: Int = 0) throws {
+        fatalError("untested")
+        data.withUnsafeBytes {
+            dataPointer.advanced(by: offset).copyMemory(from: $0, byteCount: data.count)
+        }
+    }
+
+    public func store<S: BufferSerializable>(_ data: S, offset: Int = 0) throws {
+        data.serialize(into: dataPointer.advanced(by: offset), offset: 0)
     }
 
     public func copy(from srcBuffer: ManagedGPUBuffer, srcRange: Range<Int>, dstOffset: Int, commandBuffer: VkCommandBuffer) {
