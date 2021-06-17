@@ -3,15 +3,22 @@ import GfxMath
 
 public struct SceneUniformObject: BufferSerializableStruct {
 	public var viewMatrix: Matrix4<Float>
-	public var projectionMatrix: Matrix4<Float> = .zero
-	public var ambientLightColor: FpRGBColor<Float> = .white
-	public var ambientLightIntensity: Float = 0.1
-	public var directionalLightDirection: FVec3 = FVec3(0.7, -1, 0)
-	public var directionalLightColor: FpRGBColor<Float> = .white
-	public var directionalLightIntensity: Float = 0.5
+	public var projectionMatrix: Matrix4<Float>
+	public var ambientLightColor: FpRGBColor<Float>
+	public var ambientLightIntensity: Float
+	public var directionalLightDirection: FVec3
+	public var directionalLightColor: FpRGBColor<Float>
+	public var directionalLightIntensity: Float
 
 	public static var serializationMeasureInstance: SceneUniformObject {
-		SceneUniformObject(viewMatrix: .identity)
+		SceneUniformObject(
+			viewMatrix: .zero,
+			projectionMatrix: .zero, 
+			ambientLightColor: .white,
+			ambientLightIntensity: 0,
+			directionalLightDirection: .zero,
+			directionalLightColor: .white,
+			directionalLightIntensity: 0)
 	}
 	
 	/*public static var serializedSize: Int {

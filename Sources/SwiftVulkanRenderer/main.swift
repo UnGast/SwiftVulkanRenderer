@@ -117,6 +117,8 @@ func frame() throws {
         try setupRenderer()
         usleep(2000 * 100)
     }
+    scene.directionalLight.direction.x = sin(Float(frameCount) / 300)
+    scene.directionalLight.direction.z = cos(Float(frameCount) / 300)
     try renderer?.sceneManager.updateSceneUniform()
     try renderer?.draw()
     frameCount += 1

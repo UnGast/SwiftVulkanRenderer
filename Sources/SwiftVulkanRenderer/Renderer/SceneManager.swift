@@ -74,7 +74,12 @@ public class SceneManager {
 
     let sceneUniformObject = SceneUniformObject(
       viewMatrix: Matrix4<Float>.viewTransformation(up: scene.camera.up, right: scene.camera.right, front: scene.camera.forward, translation: -scene.camera.position),
-      projectionMatrix: newProjection(aspectRatio: Float(renderer.swapchainExtent.height) / Float(renderer.swapchainExtent.width), fov: .pi / 4, near: 0.01, far: 1000)
+      projectionMatrix: newProjection(aspectRatio: Float(renderer.swapchainExtent.height) / Float(renderer.swapchainExtent.width), fov: .pi / 4, near: 0.01, far: 1000),
+      ambientLightColor: scene.ambientLight.color,
+      ambientLightIntensity: scene.ambientLight.intensity,
+      directionalLightDirection: scene.directionalLight.direction,
+      directionalLightColor: scene.directionalLight.color,
+      directionalLightIntensity: scene.directionalLight.intensity
     )
 
     try renderer.uniformSceneStagingBuffer.store(sceneUniformObject)
