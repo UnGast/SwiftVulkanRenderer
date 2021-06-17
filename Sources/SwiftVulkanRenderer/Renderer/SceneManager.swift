@@ -14,6 +14,10 @@ public class SceneManager {
   @Deferred var vertexBuffer: ManagedGPUBuffer 
   var vertexCount: Int = 0
 
+  var sceneContentWaitSemaphore: VkSemaphore?
+  var objectInfosWaitSemaphore: VkSemaphore?
+  var uniformWaitSemaphore: VkSemaphore?
+
   public init(renderer: VulkanRenderer) throws {
     self.renderer = renderer
 
@@ -22,6 +26,13 @@ public class SceneManager {
 
     vertexStagingBuffer = try renderer.geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
     vertexBuffer = try renderer.geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_VERTEX_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+
+    renderer.currentDrawFinishSemaphoreCallbacks.append { [unowned self] in
+      sceneContentWaitSemaphore = VkSemaphore.create(device: renderer.device)
+      objectInfosWaitSemaphore = VkSemaphore.create(device: renderer.device)
+      uniformWaitSemaphore = VkSemaphore.create(device: renderer.device)
+      return [sceneContentWaitSemaphore!, objectInfosWaitSemaphore!, uniformWaitSemaphore!]
+    }
   }
 
   public func updateSceneContent() throws {
@@ -30,16 +41,27 @@ public class SceneManager {
     vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.flatVertices.count }
     try vertexStagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.position.elements } })
     vertexBuffer.copy(from: vertexStagingBuffer, srcRange: 0..<vertexStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
+    
+    let waitSemaphores = sceneContentWaitSemaphore != nil ? [sceneContentWaitSemaphore!] : []
 
-    var offset = 0
+    let signalSemaphore: VkSemaphore = VkSemaphore.create(device: renderer.device)
+    renderer.nextDrawSubmitWaits.append((signalSemaphore, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT.rawValue))
+
+    try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, waitSemaphores: waitSemaphores, signalSemaphores: [signalSemaphore])
+  }
+
+  public func updateObjectInfos() throws {
+    var commandBuffer = try renderer.beginSingleTimeCommands()
+
+   var offset = 0
     for object in scene.objects {
       let drawInfo = SceneObjectDrawInfo(transformationMatrix: object.transformationMatrix)
       try objectStagingBuffer.store(drawInfo.serializedData, offset: offset)
       offset += SceneObjectDrawInfo.serializedSize
     }
     objectBuffer.copy(from: objectStagingBuffer, srcRange: 0..<objectStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
-    
-    let waitSemaphores = renderer.currentDrawFinishSemaphore1 != nil ? [renderer.currentDrawFinishSemaphore1!] : []
+
+    let waitSemaphores = objectInfosWaitSemaphore != nil ? [objectInfosWaitSemaphore!] : []
 
     let signalSemaphore: VkSemaphore = VkSemaphore.create(device: renderer.device)
     renderer.nextDrawSubmitWaits.append((signalSemaphore, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT.rawValue))
@@ -58,7 +80,7 @@ public class SceneManager {
     try renderer.uniformSceneStagingBuffer.store(sceneUniformObject.serializedData)
     renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<SceneUniformObject.serializedSize, dstOffset: 0, commandBuffer: commandBuffer)
 
-    let waitSemaphores = renderer.currentDrawFinishSemaphore2 != nil ? [renderer.currentDrawFinishSemaphore2!] : []
+    let waitSemaphores = uniformWaitSemaphore != nil ? [uniformWaitSemaphore!] : []
     
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, waitSemaphores: waitSemaphores)
 

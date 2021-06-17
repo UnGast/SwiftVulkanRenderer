@@ -83,6 +83,7 @@ DispatchQueue.global().async {
         nextX += 1
         DispatchQueue.main.async {
             try! renderer?.sceneManager.updateSceneContent()
+            try! renderer?.sceneManager.updateObjectInfos()
         }
         sleep(1)
     }
@@ -98,6 +99,7 @@ var keysActive: [KeyCode: Bool] = [
 func setupRenderer() throws {
     renderer = try VulkanRenderer(scene: scene, instance: surface.instance, surface: surface.surface)
     try renderer?.sceneManager.updateSceneContent()
+    try renderer?.sceneManager.updateObjectInfos()
     try renderer?.sceneManager.updateSceneUniform()
 }
 
