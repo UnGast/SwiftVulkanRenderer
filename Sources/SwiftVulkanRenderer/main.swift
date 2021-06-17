@@ -81,6 +81,14 @@ DispatchQueue.global().async {
             0, 0, 0, 1
         ])))
         nextX += 1
+        
+        scene.objects[0].transformationMatrix = FMat4([
+            1, 0, 0, 0,
+            0, 1, 0, nextX,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        ])
+
         DispatchQueue.main.async {
             try! renderer?.sceneManager.updateSceneContent()
             try! renderer?.sceneManager.updateObjectInfos()

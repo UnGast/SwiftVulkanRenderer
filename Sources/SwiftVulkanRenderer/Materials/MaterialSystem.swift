@@ -3,14 +3,19 @@ import Swim
 import Vulkan
 /*
 public class MaterialSystem {
-    private let vulkanRenderer: VulkanRenderer
+    private let renderer: VulkanRenderer
+
     public var materialDrawInfoIndices: [Material: Int] = [:]
     public var materialDrawInfos: [MaterialDrawInfo] = []
-    public private(set) var textures: [ManagedGPUImage] = []
-    public var materialDrawInfoBuffer: ManagedGPUBuffer?
 
-    public init(vulkanRenderer: VulkanRenderer) throws {
-        self.vulkanRenderer = vulkanRenderer
+    public private(set) var textures: [ManagedGPUImage] = []
+
+    @Deferred var materialDrawInfoBuffer: ManagedGPUBuffer
+
+    public init(renderer: VulkanRenderer) throws {
+        self.renderer = renderer 
+
+        //materialDrawInfoBuffer = renderer.geometryMemoryManager.
     }
     
     /// prepare material data for transfer to gpu, texture is already transferred in this operation, 
@@ -48,7 +53,7 @@ public class MaterialSystem {
         self.materialDrawInfoBuffer = ManagedGPUBuffer(buffer: buffer, bufferMemory: bufferMemory)
     }
 
-    public func createTextureImage(image cpuImage: Swim.Image<RGBA, UInt8>) throws -> (VkImage, VkDeviceMemory) {
+    /*public func createTextureImage(image cpuImage: Swim.Image<RGBA, UInt8>) throws -> (VkImage, VkDeviceMemory) {
         let imageDataSize = DeviceSize(cpuImage.width * cpuImage.height * 4)
 
         let (stagingBuffer, stagingBufferMemory) = try createBuffer(
@@ -293,5 +298,5 @@ public class MaterialSystem {
             memoryPointer?.copyMemory(from: $0, byteCount: data.count)
         }
         vkUnmapMemory(vulkanRenderer.device.pointer, bufferMemory)
-    }
+    }*/
 }*/
