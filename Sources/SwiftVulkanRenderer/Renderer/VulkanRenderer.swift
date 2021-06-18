@@ -21,11 +21,7 @@ public class VulkanRenderer {
   @Deferred var depthImageView: VkImageView
   @Deferred var renderPass: VkRenderPass
 
-  @Deferred var uniformMemoryManager: MemoryManager
-  @Deferred var uniformStagingMemoryManager: MemoryManager
   @Deferred var descriptorPool: VkDescriptorPool
-  @Deferred var uniformSceneBuffer: ManagedGPUBuffer 
-  @Deferred var uniformSceneStagingBuffer: ManagedGPUBuffer 
   @Deferred var sceneDescriptorSetLayout: VkDescriptorSetLayout
   @Deferred var sceneDescriptorSet: VkDescriptorSet
 
@@ -34,8 +30,6 @@ public class VulkanRenderer {
   @Deferred var framebuffers: [VkFramebuffer]
   @Deferred var commandPool: VkCommandPool
 
-  @Deferred var geometryMemoryManager: MemoryManager
-  @Deferred var geometryStagingMemoryManager: MemoryManager
   @Deferred var sceneManager: SceneManager
   
   var nextDrawSubmitWaits: [(VkSemaphore, VkPipelineStageFlags)] = []
@@ -66,12 +60,9 @@ public class VulkanRenderer {
 
     try createRenderPass()
 
+    sceneManager = try SceneManager(renderer: self)
+
     try createDescriptorPool()
-
-    uniformMemoryManager = try MemoryManager(renderer: self, memoryTypeIndex: findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
-    uniformStagingMemoryManager = try MemoryManager(renderer: self, memoryTypeIndex: findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
-
-    try createUniformBuffers()
 
     try createSceneDescriptorSetLayout()
 
@@ -82,14 +73,6 @@ public class VulkanRenderer {
     try createFramebuffers()
 
     try createCommandPool()
-
-    geometryMemoryManager = try MemoryManager(renderer: self, memoryTypeIndex: findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
-    geometryStagingMemoryManager = try MemoryManager(
-      renderer: self,
-      memoryTypeIndex: findMemoryType(
-        typeFilter: ~0,
-        properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
-    sceneManager = try SceneManager(renderer: self)
   }
 
   func pickPhysicalDevice() throws {
@@ -452,11 +435,6 @@ public class VulkanRenderer {
     return shaderModule!
   }
 
-  func createUniformBuffers() throws {
-    uniformSceneBuffer = try uniformMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
-    uniformSceneStagingBuffer = try uniformStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_TRANSFER_SRC_BIT.rawValue))
-  }
-
   func createDescriptorPool() throws {
     var poolSizes = [
       VkDescriptorPoolSize(
@@ -532,7 +510,7 @@ public class VulkanRenderer {
 
   func updateSceneDescriptorSet() throws {
     var uniformObjectBufferInfo = VkDescriptorBufferInfo(
-      buffer: uniformSceneBuffer.buffer,
+      buffer: sceneManager.uniformSceneBuffer.buffer,
       offset: 0,
       range: VkDeviceSize(SceneUniformObject.serializedSize)
     )

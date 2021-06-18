@@ -7,12 +7,20 @@ public class SceneManager {
     renderer.scene
   }
 
+  @Deferred var geometryMemoryManager: MemoryManager
+  @Deferred var geometryStagingMemoryManager: MemoryManager
+
   @Deferred var objectStagingBuffer: ManagedGPUBuffer
   @Deferred var objectBuffer: ManagedGPUBuffer
 
   @Deferred var vertexStagingBuffer: ManagedGPUBuffer
   @Deferred var vertexBuffer: ManagedGPUBuffer 
   var vertexCount: Int = 0
+
+  @Deferred var uniformMemoryManager: MemoryManager
+  @Deferred var uniformStagingMemoryManager: MemoryManager
+  @Deferred var uniformSceneBuffer: ManagedGPUBuffer 
+  @Deferred var uniformSceneStagingBuffer: ManagedGPUBuffer 
 
   var sceneContentWaitSemaphore: VkSemaphore?
   var objectInfosWaitSemaphore: VkSemaphore?
@@ -21,11 +29,23 @@ public class SceneManager {
   public init(renderer: VulkanRenderer) throws {
     self.renderer = renderer
 
-    objectStagingBuffer = try renderer.geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
-    objectBuffer = try renderer.geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+    geometryMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+    geometryStagingMemoryManager = try MemoryManager(
+      renderer: renderer,
+      memoryTypeIndex: renderer.findMemoryType(
+        typeFilter: ~0,
+        properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
 
-    vertexStagingBuffer = try renderer.geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
-    vertexBuffer = try renderer.geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_VERTEX_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+    objectStagingBuffer = try geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+    objectBuffer = try geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+
+    vertexStagingBuffer = try geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+    vertexBuffer = try geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_VERTEX_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+
+    uniformMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+    uniformStagingMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
+
+    try createUniformBuffers()
 
     renderer.currentDrawFinishSemaphoreCallbacks.append { [unowned self] in
       sceneContentWaitSemaphore = VkSemaphore.create(device: renderer.device)
@@ -33,6 +53,11 @@ public class SceneManager {
       uniformWaitSemaphore = VkSemaphore.create(device: renderer.device)
       return [sceneContentWaitSemaphore!, objectInfosWaitSemaphore!, uniformWaitSemaphore!]
     }
+  }
+
+  func createUniformBuffers() throws {
+    uniformSceneBuffer = try uniformMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
+    uniformSceneStagingBuffer = try uniformStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_TRANSFER_SRC_BIT.rawValue))
   }
 
   public func updateSceneContent() throws {
@@ -82,8 +107,8 @@ public class SceneManager {
       directionalLightIntensity: scene.directionalLight.intensity
     )
 
-    try renderer.uniformSceneStagingBuffer.store(sceneUniformObject)
-    renderer.uniformSceneBuffer.copy(from: renderer.uniformSceneStagingBuffer, srcRange: 0..<SceneUniformObject.serializedSize, dstOffset: 0, commandBuffer: commandBuffer)
+    try uniformSceneStagingBuffer.store(sceneUniformObject)
+    uniformSceneBuffer.copy(from: uniformSceneStagingBuffer, srcRange: 0..<SceneUniformObject.serializedSize, dstOffset: 0, commandBuffer: commandBuffer)
 
     let waitSemaphores = uniformWaitSemaphore != nil ? [uniformWaitSemaphore!] : []
     
