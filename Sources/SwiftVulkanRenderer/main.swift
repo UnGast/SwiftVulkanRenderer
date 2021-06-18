@@ -72,6 +72,12 @@ scene.objects.append(SceneObject(mesh: Mesh.icosahedron(material: mainMaterial),
     0, 0, 1, 0,
     0, 0, 0, 1
 ])))
+scene.objects.append(SceneObject(mesh: Mesh.sphere(subdivisionCount: 4, material: mainMaterial), transformationMatrix: FMat4([
+    1, 0, 0, -6,
+    0, 1, 0, 3,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+])))
 
 var renderer: VulkanRenderer? = nil
 

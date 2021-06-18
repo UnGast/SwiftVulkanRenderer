@@ -2,6 +2,7 @@ import Foundation
 import GfxMath
 
 extension Mesh {
+	/// - Returns: icosahedron with enclosing diameter of 0.5
 	public static func icosahedron(material: Material) -> Mesh {
 		let phi: Float = (1 + sqrt(5)) / 2 
 		let a = Float(0.5)
