@@ -7,6 +7,9 @@ public class SceneManager {
     renderer.scene
   }
 
+  @Deferred var drawCommandMemoryManager: MemoryManager
+  @Deferred var drawCommandBuffer: ManagedGPUBuffer
+
   @Deferred var geometryMemoryManager: MemoryManager
   @Deferred var geometryStagingMemoryManager: MemoryManager
 
@@ -15,7 +18,6 @@ public class SceneManager {
 
   @Deferred var vertexStagingBuffer: ManagedGPUBuffer
   @Deferred var vertexBuffer: ManagedGPUBuffer 
-  var vertexCount: Int = 0
 
   @Deferred var uniformMemoryManager: MemoryManager
   @Deferred var uniformStagingMemoryManager: MemoryManager
@@ -28,6 +30,9 @@ public class SceneManager {
 
   public init(renderer: VulkanRenderer) throws {
     self.renderer = renderer
+
+    drawCommandMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
+    drawCommandBuffer = try drawCommandMemoryManager.getBuffer(size: 1024, usage: VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT)
 
     geometryMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
     geometryStagingMemoryManager = try MemoryManager(
@@ -61,11 +66,29 @@ public class SceneManager {
   }
 
   public func updateSceneContent() throws {
+    var drawCommands = [VkDrawIndirectCommand]()
+
     var commandBuffer = try renderer.beginSingleTimeCommands()
 
-    vertexCount = scene.objects.reduce(0) { $0 + $1.mesh.flatVertices.count }
-    try vertexStagingBuffer.store(scene.objects.flatMap { $0.mesh.flatVertices.flatMap { $0.serializedData } })
+    var vertexData = [Float]()
+    var currentVertexCount = 0
+    for (index, object) in scene.objects.enumerated() {
+      let flatVertices = object.mesh.flatVertices
+
+      drawCommands.append(VkDrawIndirectCommand(
+        vertexCount: UInt32(flatVertices.count),
+        instanceCount: 1,
+        firstVertex: UInt32(currentVertexCount),
+        firstInstance: UInt32(index)
+      ))
+
+      currentVertexCount += flatVertices.count
+      vertexData.append(contentsOf: flatVertices.flatMap { $0.serializedData })
+    }
+    try vertexStagingBuffer.store(vertexData)
     vertexBuffer.copy(from: vertexStagingBuffer, srcRange: 0..<vertexStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
+
+    try drawCommandBuffer.store(drawCommands)
     
     let waitSemaphores = sceneContentWaitSemaphore != nil ? [sceneContentWaitSemaphore!] : []
 

@@ -60,6 +60,7 @@ public class VulkanRenderer {
 
     try createRenderPass()
 
+    // create here, because buffers created by SceneManager are needed in createSceneDescriptorSet
     sceneManager = try SceneManager(renderer: self)
 
     try createDescriptorPool()
@@ -117,6 +118,9 @@ public class VulkanRenderer {
 
     let extensions = [UnsafePointer(strdup("VK_KHR_swapchain"))]
 
+    var features = VkPhysicalDeviceFeatures()
+    features.multiDrawIndirect = 1
+
     var deviceCreateInfo = VkDeviceCreateInfo(
       sType: VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       pNext: nil,
@@ -127,7 +131,7 @@ public class VulkanRenderer {
       ppEnabledLayerNames: nil,
       enabledExtensionCount: UInt32(extensions.count),
       ppEnabledExtensionNames: extensions,
-      pEnabledFeatures: nil
+      pEnabledFeatures: &features
     )
 
     var device: VkDevice? = nil
@@ -1005,12 +1009,7 @@ public class VulkanRenderer {
     var descriptorSets = [Optional(sceneDescriptorSet)]
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 0, UInt32(descriptorSets.count), descriptorSets, 0, nil)
 
-    var currentVertexOffset = 0
-    for (index, object) in scene.objects.enumerated() {
-      var vertexCount = object.mesh.flatVertices.count
-      vkCmdDraw(commandBuffer, UInt32(vertexCount), 1, UInt32(currentVertexOffset), UInt32(index))
-      currentVertexOffset += vertexCount
-    }
+    vkCmdDrawIndirect(commandBuffer, sceneManager.drawCommandBuffer.buffer, 0, UInt32(scene.objects.count), UInt32(MemoryLayout<VkDrawIndirectCommand>.size))
 
     vkCmdEndRenderPass(commandBuffer)
 

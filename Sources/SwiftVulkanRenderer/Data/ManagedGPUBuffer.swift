@@ -22,8 +22,8 @@ public class ManagedGPUBuffer {
         self.range = range
     }
 
-    public func store(_ data: [Float], offset: Int = 0) throws {
-        let dataSize = MemoryLayout<Float>.size * data.count
+    public func store<T>(_ data: [T], offset: Int = 0) throws {
+        let dataSize = MemoryLayout<T>.size * data.count
 
         dataPointer.advanced(by: offset).copyMemory(from: data, byteCount: dataSize)
     }
