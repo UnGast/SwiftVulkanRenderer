@@ -36,6 +36,7 @@ private func subdivideFace(_ v1: Vertex, _ v2: Vertex, _ v3: Vertex, radius: Flo
 		mid1, v2.position, mid2,
 		mid2, v3.position, mid3
 	]
+
 	let vertices = positions.map { Vertex(position: $0.normalized() * radius, normal: $0.normalized()) }
 	return vertices
 }

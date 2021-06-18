@@ -78,6 +78,12 @@ scene.objects.append(SceneObject(mesh: Mesh.sphere(subdivisionCount: 4, material
     0, 0, 1, 0,
     0, 0, 0, 1
 ])))
+scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20, material: mainMaterial), transformationMatrix: FMat4([
+    1, 0, 0, -10,
+    0, 1, 0, 3,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+])))
 
 var renderer: VulkanRenderer? = nil
 
