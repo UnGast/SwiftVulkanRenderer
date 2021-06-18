@@ -129,16 +129,29 @@ func setupRenderer() throws {
     try renderer?.sceneManager.updateSceneUniform()
 }
 
+var lastFrameDurationStartTimestamp = Date.timeIntervalSinceReferenceDate
+var fiveFramesDuration = 1.0
+
 func frame() throws {
+    scene.directionalLight.direction.x = sin(Float(frameCount) / 300)
+    scene.directionalLight.direction.z = cos(Float(frameCount) / 300)
+
+    if frameCount % 5 == 0 {
+        let currentTimestamp = Date.timeIntervalSinceReferenceDate
+        fiveFramesDuration = currentTimestamp - lastFrameDurationStartTimestamp 
+        lastFrameDurationStartTimestamp = currentTimestamp
+        //print("fps", 1 / (fiveFramesDuration / 5))
+    }
+
     if renderer == nil && frameCount > 10 {
         usleep(2000 * 100)
         try setupRenderer()
         usleep(2000 * 100)
     }
-    scene.directionalLight.direction.x = sin(Float(frameCount) / 300)
-    scene.directionalLight.direction.z = cos(Float(frameCount) / 300)
+
     try renderer?.sceneManager.updateSceneUniform()
     try renderer?.draw()
+
     frameCount += 1
 
     Events.pumpEvents()
