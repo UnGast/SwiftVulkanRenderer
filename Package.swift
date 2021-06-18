@@ -10,9 +10,13 @@ let package = Package(
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
-        .executable(
+        .library(
             name: "SwiftVulkanRenderer",
             targets: ["SwiftVulkanRenderer"]),
+        .executable(
+            name: "Demo",
+            targets: ["Demo"]
+        )
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -30,6 +34,10 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]),
+        .target(
+            name: "Demo",
+            dependencies: ["SwiftVulkanRenderer", "GfxMath", "Swim"]
+        ),
         .target(name: "CTinyObjLoader"),
         .testTarget(
             name: "SwiftVulkanRendererTests",

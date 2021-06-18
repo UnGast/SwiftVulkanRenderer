@@ -1,3 +1,3 @@
 # SwiftVulkanRenderer
 
-A description of this package.
+`swift run Demo` to see a demo rendering
