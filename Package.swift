@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "SwiftVulkanRenderer",
     platforms: [
-        .macOS(.v10_15)
+        .macOS(.v11)
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
@@ -38,9 +38,6 @@ let package = Package(
             name: "Demo",
             dependencies: ["SwiftVulkanRenderer", "GfxMath", "Swim"]
         ),
-        .target(name: "CTinyObjLoader"),
-        .testTarget(
-            name: "SwiftVulkanRendererTests",
-            dependencies: ["SwiftVulkanRenderer"]),
+        .target(name: "CTinyObjLoader")
     ]
 )
