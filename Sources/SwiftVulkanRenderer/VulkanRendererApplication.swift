@@ -19,6 +19,10 @@ public class VulkanRendererApplication {
         try renderer?.sceneManager.updateObjectInfos()
     }
 
+    public func notifySceneObjectInfosUpdated() throws {
+        try renderer?.sceneManager.updateObjectInfos()
+    }
+
     public func run() throws {
         Platform.initialize()
         print("Platform version: \(Platform.version)")
