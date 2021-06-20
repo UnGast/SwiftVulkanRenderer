@@ -6,8 +6,15 @@ import GfxMath
 public protocol BufferSerializable {
     static var serializedBaseAlignment: Int { get }
     static var serializedSize: Int { get }
+    static var serializedStride: Int { get }
 
     func serialize(into buffer: UnsafeMutableRawPointer, offset: Int)
+}
+
+extension BufferSerializable {
+    public static var serializedStride: Int {
+        toMultipleOf16(serializedSize)
+    }
 }
 
 extension FVec3: BufferSerializable {
@@ -112,7 +119,7 @@ extension BufferSerializableStruct {
     }
 
     public static var serializedSize: Int {
-        serializableMembers(in: serializationMeasureInstance).count * serializedBaseAlignment
+        serializableMembers(in: Self.serializationMeasureInstance).reduce(0) { $0 + type(of: $1).serializedSize } //(in: serializationMeasureInstance).count * serializedBaseAlignment
     }
 
     @usableFromInline static func serializableMembers(in instance: Self) -> [BufferSerializable] {
