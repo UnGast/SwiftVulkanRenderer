@@ -119,12 +119,14 @@ public class VulkanRenderer {
     var physicalDeviceFeatures = VkPhysicalDeviceFeatures()
     physicalDeviceFeatures.samplerAnisotropy = 1
 
-    let extensions = [
+    var extensions = [
       UnsafePointer(strdup("VK_KHR_swapchain")),
       UnsafePointer(strdup("VK_EXT_descriptor_indexing")),
-      UnsafePointer(strdup("VK_KHR_maintenance3")),
-      UnsafePointer(strdup("VK_KHR_portability_subset"))
+      UnsafePointer(strdup("VK_KHR_maintenance3"))
     ]
+    #if os(macOS)
+    extensions.append(UnsafePointer(strdup("VK_KHR_portability_subset")))
+    #endif
 
     var features = VkPhysicalDeviceFeatures()
     features.multiDrawIndirect = 1
