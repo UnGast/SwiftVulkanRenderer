@@ -74,6 +74,8 @@ public class SceneManager {
 
     var commandBuffer = try renderer.beginSingleTimeCommands()
 
+    let oldTextureCount = materialSystem.textures.count
+
     var vertexData = [Float]()
     var currentVertexCount = 0
     for (index, object) in scene.objects.enumerated() {
@@ -91,6 +93,13 @@ public class SceneManager {
       currentVertexCount += flatVertices.count
       vertexData.append(contentsOf: flatVertices.flatMap { $0.serializedData })
     }
+
+    let newTextureCount = materialSystem.textures.count
+
+    if newTextureCount != oldTextureCount {
+      try renderer.recreateGraphicsPipeline()
+    }
+
     try vertexStagingBuffer.store(vertexData)
     vertexBuffer.copy(from: vertexStagingBuffer, srcRange: 0..<vertexStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
 

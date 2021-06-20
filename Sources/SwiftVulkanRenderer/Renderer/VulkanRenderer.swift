@@ -497,7 +497,7 @@ public class VulkanRenderer {
       ),
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        descriptorCount: 10
+        descriptorCount: 1024
       ),
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_SAMPLER,
@@ -539,7 +539,7 @@ public class VulkanRenderer {
       VkDescriptorSetLayoutBinding(
         binding: 2,
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        descriptorCount: 2,
+        descriptorCount: UInt32(sceneManager.materialSystem.textures.count),
         stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: nil
       ),
@@ -975,6 +975,13 @@ public class VulkanRenderer {
 
     self.graphicsPipeline = graphicsPipeline
     self.pipelineLayout = pipelineLayout*/
+  }
+
+  /// used when descriptor count changed, e.g. for material texture descriptors
+  func recreateGraphicsPipeline() throws {
+    try createSceneDescriptorSetLayout()
+    try createSceneDescriptorSet()
+    try createGraphicsPipeline()
   }
 
   func createFramebuffers() throws {
