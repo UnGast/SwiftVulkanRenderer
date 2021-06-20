@@ -4,7 +4,7 @@ import GfxMath
 import Swim
 import SwiftVulkanRenderer
 
-let mainMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
+let mainMaterial = Material(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 120, g: 50, b: 240, a: 255)))
 
 let scene = Scene()
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: .identity))

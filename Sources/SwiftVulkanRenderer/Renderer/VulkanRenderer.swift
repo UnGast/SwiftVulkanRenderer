@@ -20,6 +20,7 @@ public class VulkanRenderer {
   @Deferred var depthImage: VkImage
   @Deferred var depthImageView: VkImageView
   @Deferred var renderPass: VkRenderPass
+  @Deferred var textureSampler: VkSampler
 
   @Deferred var descriptorPool: VkDescriptorPool
   @Deferred var sceneDescriptorSetLayout: VkDescriptorSetLayout
@@ -62,6 +63,8 @@ public class VulkanRenderer {
 
     // create here, because buffers created by SceneManager are needed in createSceneDescriptorSet
     sceneManager = try SceneManager(renderer: self)
+
+    try createTextureSampler()
 
     try createDescriptorPool()
 
@@ -125,9 +128,14 @@ public class VulkanRenderer {
     var features = VkPhysicalDeviceFeatures()
     features.multiDrawIndirect = 1
 
+    var descriptorIndexingFeatures = VkPhysicalDeviceDescriptorIndexingFeatures()
+    descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES
+    descriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = 1
+    descriptorIndexingFeatures.runtimeDescriptorArray = 1
+
     var deviceCreateInfo = VkDeviceCreateInfo(
       sType: VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      pNext: nil,
+      pNext: &descriptorIndexingFeatures,
       flags: 0,
       queueCreateInfoCount: 1,
       pQueueCreateInfos: &queueCreateInfo,
@@ -443,6 +451,37 @@ public class VulkanRenderer {
     return shaderModule!
   }
 
+  func createTextureSampler() throws {
+    var properties = VkPhysicalDeviceProperties()
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties)
+
+    var samplerInfo = VkSamplerCreateInfo(
+      sType: VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      magFilter: VK_FILTER_LINEAR,
+      minFilter: VK_FILTER_LINEAR,
+      mipmapMode: VK_SAMPLER_MIPMAP_MODE_LINEAR,
+      addressModeU: VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      addressModeV: VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      addressModeW: VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      mipLodBias: 0,
+      anisotropyEnable: 0,
+      maxAnisotropy: properties.limits.maxSamplerAnisotropy,
+      compareEnable: 0,
+      compareOp: VK_COMPARE_OP_ALWAYS,
+      minLod: 0,
+      maxLod: 0,
+      borderColor: VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+      unnormalizedCoordinates: 0
+    )
+
+    var textureSampler: VkSampler?
+    vkCreateSampler(device, &samplerInfo, nil, &textureSampler)
+
+    self.textureSampler = textureSampler!
+  }
+
   func createDescriptorPool() throws {
     var poolSizes = [
       VkDescriptorPoolSize(
@@ -456,6 +495,10 @@ public class VulkanRenderer {
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
         descriptorCount: 10
+      ),
+      VkDescriptorPoolSize(
+        type: VK_DESCRIPTOR_TYPE_SAMPLER,
+        descriptorCount: 1
       )
     ]
     var createInfo = VkDescriptorPoolCreateInfo(
@@ -474,6 +517,7 @@ public class VulkanRenderer {
   }
 
   func createSceneDescriptorSetLayout() throws {
+    var samplers = [Optional(textureSampler)]
     var bindings = [
       VkDescriptorSetLayoutBinding(
         binding: 0,
@@ -492,9 +536,16 @@ public class VulkanRenderer {
       VkDescriptorSetLayoutBinding(
         binding: 2,
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        descriptorCount: 10,
+        descriptorCount: 1,
         stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: nil
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 3,
+        descriptorType: VK_DESCRIPTOR_TYPE_SAMPLER,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
+        pImmutableSamplers: samplers
       )
     ]
     var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(

@@ -23,6 +23,10 @@ public class VulkanRendererApplication {
         try renderer?.sceneManager.updateObjectInfos()
     }
 
+    func makeApiVersion(variant: UInt32, major: UInt32, minor: UInt32, patch: UInt32) -> UInt32 {
+        (variant << 29) | (major << 22) | (minor << 12) | (patch)
+    }
+
     public func run() throws {
         Platform.initialize()
         print("Platform version: \(Platform.version)")
@@ -46,11 +50,16 @@ public class VulkanRendererApplication {
 
             var extNames = rawExtensionNames.map { UnsafePointer<CChar>(strdup($0)) }
 
+            var applicationInfo = VkApplicationInfo()
+            applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO
+            applicationInfo.pNext = nil
+            applicationInfo.apiVersion = makeApiVersion(variant: 0, major: 1, minor: 2, patch: 0)
+
             var createInfo = VkInstanceCreateInfo(
                 sType: VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
                 pNext: nil,
                 flags: 0,
-                pApplicationInfo: nil,
+                pApplicationInfo: &applicationInfo,
                 enabledLayerCount: UInt32(enabledLayerNames.count),
                 ppEnabledLayerNames: enabledLayerNames,
                 enabledExtensionCount: UInt32(rawExtensionNames.count),
