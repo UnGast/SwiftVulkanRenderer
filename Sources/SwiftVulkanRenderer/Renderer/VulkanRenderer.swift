@@ -122,7 +122,8 @@ public class VulkanRenderer {
     let extensions = [
       UnsafePointer(strdup("VK_KHR_swapchain")),
       UnsafePointer(strdup("VK_EXT_descriptor_indexing")),
-      UnsafePointer(strdup("VK_KHR_maintenance3"))
+      UnsafePointer(strdup("VK_KHR_maintenance3")),
+      UnsafePointer(strdup("VK_KHR_portability_subset"))
     ]
 
     var features = VkPhysicalDeviceFeatures()
@@ -150,6 +151,7 @@ public class VulkanRenderer {
     vkCreateDevice(physicalDevice, &deviceCreateInfo, nil, &device)
     self.device = device!
   }
+  
 
   func createQueue() throws {
     var queues = [VkQueue?](repeating: VkQueue(bitPattern: 0), count: 1)
@@ -198,7 +200,7 @@ public class VulkanRenderer {
     vkCreateSwapchainKHR(device, &swapchainCreateInfo, nil, &swapchain)
     self.swapchain = swapchain!
     self.swapchainImageFormat = surfaceFormat.format
-    self.swapchainExtent = capabilities.minImageExtent
+    self.swapchainExtent = capabilities.maxImageExtent
 
     /*self.swapchain = try Swapchain.create(
       inDevice: device,
