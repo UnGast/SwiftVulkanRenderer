@@ -109,9 +109,12 @@ public class SceneManager {
 
    var offset = 0
     for object in scene.objects {
-      let drawInfo = SceneObjectDrawInfo(transformationMatrix: object.transformationMatrix)
-      try objectStagingBuffer.store(drawInfo.serializedData, offset: offset)
-      offset += SceneObjectDrawInfo.serializedSize
+      let drawInfo = SceneObjectDrawInfo(
+        transformationMatrix: object.transformationMatrix,
+        materialIndex: UInt32(materialSystem.materialDrawInfoIndices[object.mesh.material]!))
+
+      try objectStagingBuffer.store(drawInfo, offset: offset)
+      offset += SceneObjectDrawInfo.serializedStride
     }
     objectBuffer.copy(from: objectStagingBuffer, srcRange: 0..<objectStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
 

@@ -153,7 +153,6 @@ public class VulkanRenderer {
     vkCreateDevice(physicalDevice, &deviceCreateInfo, nil, &device)
     self.device = device!
   }
-  
 
   func createQueue() throws {
     var queues = [VkQueue?](repeating: VkQueue(bitPattern: 0), count: 1)
@@ -494,7 +493,7 @@ public class VulkanRenderer {
       ),
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        descriptorCount: 1
+        descriptorCount: 2
       ),
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -534,13 +533,13 @@ public class VulkanRenderer {
         binding: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         descriptorCount: 1,
-        stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue,
+        stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue | VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: nil
       ),
       VkDescriptorSetLayoutBinding(
         binding: 2,
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        descriptorCount: 1,
+        descriptorCount: 2,
         stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: nil
       ),
@@ -550,6 +549,13 @@ public class VulkanRenderer {
         descriptorCount: 1,
         stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: samplers
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 4,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
+        pImmutableSamplers: nil
       )
     ]
     var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
@@ -600,6 +606,11 @@ public class VulkanRenderer {
         imageLayout: VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
       )
     }
+    var materialDataBufferInfo = VkDescriptorBufferInfo(
+      buffer: sceneManager.materialSystem.materialDataBuffer.buffer,
+      offset: 0,
+      range: VK_WHOLE_SIZE
+    )
 
     var descriptorWrites = [
       VkWriteDescriptorSet(
@@ -636,6 +647,18 @@ public class VulkanRenderer {
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
         pImageInfo: &textureInfos,
         pBufferInfo: nil,
+        pTexelBufferView: nil
+      ),
+      VkWriteDescriptorSet(
+        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        pNext: nil,
+        dstSet: sceneDescriptorSet,
+        dstBinding: 4,
+        dstArrayElement: 0,
+        descriptorCount: 1,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        pImageInfo: nil,
+        pBufferInfo: &materialDataBufferInfo,
         pTexelBufferView: nil
       )
     ]
@@ -852,7 +875,7 @@ public class VulkanRenderer {
       lineWidth: 1
     )
 
-   var multisampleStateInfo = VkPipelineMultisampleStateCreateInfo(
+    var multisampleStateInfo = VkPipelineMultisampleStateCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       pNext: nil,
       flags: 0,

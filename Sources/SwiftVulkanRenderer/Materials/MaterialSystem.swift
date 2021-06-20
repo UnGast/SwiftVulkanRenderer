@@ -10,14 +10,14 @@ class MaterialSystem {
 
     private(set) var textures: [ManagedGPUImage] = []
 
-    let drawInfoMemoryManager: MemoryManager
-    @Deferred var materialDrawInfoBuffer: ManagedGPUBuffer
+    let materialDataMemoryManager: MemoryManager
+    @Deferred var materialDataBuffer: ManagedGPUBuffer
 
     init(renderer: VulkanRenderer) throws {
         self.renderer = renderer 
 
-        drawInfoMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: try renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
-        materialDrawInfoBuffer = try drawInfoMemoryManager.getBuffer(size: 1024, usage: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+        materialDataMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: try renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
+        materialDataBuffer = try materialDataMemoryManager.getBuffer(size: 1024, usage: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
     }
     
     /// prepare material data for transfer to gpu, texture is already transferred in this operation, 
@@ -46,7 +46,7 @@ class MaterialSystem {
     
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)
     public func updateGPUData() throws {
-        try materialDrawInfoBuffer.store(materialDrawInfos)
+        try materialDataBuffer.store(materialDrawInfos)
     }
 
     public func createTextureImage(image cpuImage: Swim.Image<RGBA, UInt8>) throws -> VkImage {

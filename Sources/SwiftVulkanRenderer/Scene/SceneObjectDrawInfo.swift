@@ -1,13 +1,10 @@
 import GfxMath
 
-public struct SceneObjectDrawInfo {
+public struct SceneObjectDrawInfo: BufferSerializableStruct {
 	public var transformationMatrix: FMat4
+	public var materialIndex: UInt32
 
-	public static var serializedSize: Int {
-		MemoryLayout<Float>.size * 16
-	}
-
-	public var serializedData: [Float] {
-		transformationMatrix.transposed.elements
+	public static var serializationMeasureInstance: SceneObjectDrawInfo {
+		SceneObjectDrawInfo(transformationMatrix: .zero, materialIndex: 0)
 	}
 }

@@ -6,6 +6,7 @@ layout(location=1) in vec3 inNormal;
 
 struct ObjectInfo {
     mat4 transformationMatrix;
+    uint materialIndex;
 };
 
 layout(binding = 0) uniform SceneParams {
@@ -17,8 +18,10 @@ layout(binding = 1) readonly buffer ObjectInfoBuffer{
 };
 
 layout(location=0) out vec3 fragNormal;
+layout(location=1) out uint instanceIndex;
 
 void main() {
     gl_Position = projectionMatrix * viewMatrix * objectInfo[gl_InstanceIndex].transformationMatrix * vec4(inPos, 1);
     fragNormal = inNormal;
+    instanceIndex = gl_InstanceIndex;
 }
