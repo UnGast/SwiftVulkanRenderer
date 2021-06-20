@@ -116,7 +116,11 @@ public class VulkanRenderer {
     var physicalDeviceFeatures = VkPhysicalDeviceFeatures()
     physicalDeviceFeatures.samplerAnisotropy = 1
 
-    let extensions = [UnsafePointer(strdup("VK_KHR_swapchain"))]
+    let extensions = [
+      UnsafePointer(strdup("VK_KHR_swapchain")),
+      UnsafePointer(strdup("VK_EXT_descriptor_indexing")),
+      UnsafePointer(strdup("VK_KHR_maintenance3"))
+    ]
 
     var features = VkPhysicalDeviceFeatures()
     features.multiDrawIndirect = 1
@@ -448,6 +452,10 @@ public class VulkanRenderer {
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         descriptorCount: 1
+      ),
+      VkDescriptorPoolSize(
+        type: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        descriptorCount: 10
       )
     ]
     var createInfo = VkDescriptorPoolCreateInfo(
@@ -479,6 +487,13 @@ public class VulkanRenderer {
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         descriptorCount: 1,
         stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue,
+        pImmutableSamplers: nil
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 2,
+        descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        descriptorCount: 10,
+        stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: nil
       )
     ]
@@ -523,6 +538,13 @@ public class VulkanRenderer {
       offset: 0,
       range: VkDeviceSize(sceneManager.objectBuffer.size)
     )
+    var textureInfos = sceneManager.materialSystem.textures.map {
+      VkDescriptorImageInfo(
+        sampler: nil,
+        imageView: $0.imageView,
+        imageLayout: VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+      )
+    }
 
     var descriptorWrites = [
       VkWriteDescriptorSet(
@@ -547,6 +569,18 @@ public class VulkanRenderer {
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
         pBufferInfo: &objectBufferInfo,
+        pTexelBufferView: nil
+      ),
+      VkWriteDescriptorSet(
+        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        pNext: nil,
+        dstSet: sceneDescriptorSet,
+        dstBinding: 2,
+        dstArrayElement: 0,
+        descriptorCount: UInt32(textureInfos.count),
+        descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        pImageInfo: &textureInfos,
+        pBufferInfo: nil,
         pTexelBufferView: nil
       )
     ]

@@ -24,6 +24,8 @@ public class SceneManager {
   @Deferred var uniformSceneBuffer: ManagedGPUBuffer 
   @Deferred var uniformSceneStagingBuffer: ManagedGPUBuffer 
 
+  @Deferred var materialSystem: MaterialSystem
+
   var sceneContentWaitSemaphore: VkSemaphore?
   var objectInfosWaitSemaphore: VkSemaphore?
   var uniformWaitSemaphore: VkSemaphore?
@@ -52,6 +54,8 @@ public class SceneManager {
 
     try createUniformBuffers()
 
+    materialSystem = try MaterialSystem(renderer: renderer)
+
     renderer.currentDrawFinishSemaphoreCallbacks.append { [unowned self] in
       sceneContentWaitSemaphore = VkSemaphore.create(device: renderer.device)
       objectInfosWaitSemaphore = VkSemaphore.create(device: renderer.device)
@@ -73,6 +77,8 @@ public class SceneManager {
     var vertexData = [Float]()
     var currentVertexCount = 0
     for (index, object) in scene.objects.enumerated() {
+      try materialSystem.loadMaterial(object.mesh.material)
+
       let flatVertices = object.mesh.flatVertices
 
       drawCommands.append(VkDrawIndirectCommand(

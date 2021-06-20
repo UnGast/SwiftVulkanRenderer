@@ -37,11 +37,14 @@ public class VulkanRendererApplication {
 
         func createVLKInstance() throws -> VkInstance {
             var hidSurfaceExtensions = VLKWindowSurface.getRequiredInstanceExtensionNames()
+            var rawExtensionNames = hidSurfaceExtensions + [
+                "VK_KHR_get_physical_device_properties2"
+            ]
 
             // strdup copies the string passed in and returns a pointer to copy; copy not managed by swift -> not deallocated
             var enabledLayerNames = [UnsafePointer<CChar>(strdup("VK_LAYER_KHRONOS_validation"))]
 
-            var extNames = hidSurfaceExtensions.map { UnsafePointer<CChar>(strdup($0)) }
+            var extNames = rawExtensionNames.map { UnsafePointer<CChar>(strdup($0)) }
 
             var createInfo = VkInstanceCreateInfo(
                 sType: VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -50,7 +53,7 @@ public class VulkanRendererApplication {
                 pApplicationInfo: nil,
                 enabledLayerCount: UInt32(enabledLayerNames.count),
                 ppEnabledLayerNames: enabledLayerNames,
-                enabledExtensionCount: UInt32(hidSurfaceExtensions.count),
+                enabledExtensionCount: UInt32(rawExtensionNames.count),
                 ppEnabledExtensionNames: &extNames
             )
 
