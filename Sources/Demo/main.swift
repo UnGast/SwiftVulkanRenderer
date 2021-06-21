@@ -28,6 +28,8 @@ scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20, material
 	0, 0, 0, 1
 ])))
 
+scene.camera.position = FVec3(0, 2, -10)
+
 let application = VulkanRendererApplication(scene: scene) 
 
 DispatchQueue.global().async {
