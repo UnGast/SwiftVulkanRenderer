@@ -36,12 +36,13 @@ public class SceneManager {
     drawCommandMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
     drawCommandBuffer = try drawCommandMemoryManager.getBuffer(size: 1024, usage: VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT)
 
-    geometryMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+    geometryMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), minAllocSize: 50 * 1024 * 1024)
     geometryStagingMemoryManager = try MemoryManager(
       renderer: renderer,
       memoryTypeIndex: renderer.findMemoryType(
         typeFilter: ~0,
-        properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
+        properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)),
+      minAllocSize: 50 * 1024 * 1024)
 
     objectStagingBuffer = try geometryStagingMemoryManager.getBuffer(size: 1024 * 1024, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
     objectBuffer = try geometryMemoryManager.getBuffer(size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))

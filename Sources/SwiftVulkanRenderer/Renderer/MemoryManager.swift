@@ -3,17 +3,19 @@ import Vulkan
 public class MemoryManager {
   let renderer: VulkanRenderer
   let memoryTypeIndex: UInt32
+  let minAllocSize: Int
   @Deferred var memory: ManagedGPUMemory
 
-  public init(renderer: VulkanRenderer, memoryTypeIndex: UInt32) throws {
+  public init(renderer: VulkanRenderer, memoryTypeIndex: UInt32, minAllocSize: Int = 10 * 1024 * 1024) throws {
     self.renderer = renderer
     self.memoryTypeIndex = memoryTypeIndex
+    self.minAllocSize = minAllocSize
 
     try allocateMemory()
   }
 
   func allocateMemory() throws {
-    let size = 10 * 1024 * 1024
+    let size = minAllocSize
 
     var allocateInfo = VkMemoryAllocateInfo(
       sType: VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
