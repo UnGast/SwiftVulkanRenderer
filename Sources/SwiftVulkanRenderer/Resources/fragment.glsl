@@ -32,7 +32,7 @@ layout(set = 0, binding = 0) uniform SceneParams {
 layout(binding = 1) readonly buffer ObjectInfoBuffer{
     ObjectInfo objectInfos[];
 };
-layout(set = 0, binding = 2) uniform texture2D textures[];
+layout(set = 0, binding = 2) uniform texture2D textures[16];
 layout(set = 0, binding = 3) uniform sampler texSampler;
 layout(set = 0, binding = 4) readonly buffer MaterialBuffer{
   Material materials[];
