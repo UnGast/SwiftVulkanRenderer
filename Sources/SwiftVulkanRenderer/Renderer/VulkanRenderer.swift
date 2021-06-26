@@ -1,3 +1,4 @@
+import Foundation
 import Vulkan
 
 public protocol VulkanRenderer {
@@ -11,17 +12,11 @@ public protocol VulkanRenderer {
 	func updateSceneObjectMeta() throws
 	func updateSceneCameraUniforms() throws
 
-	func findMemoryType(typeFilter: UInt32, properties: VkMemoryPropertyFlagBits) throws -> UInt32
-
-	func beginSingleTimeCommands() throws -> VkCommandBuffer
-
-	func endSingleTimeCommands(commandBuffer: VkCommandBuffer, waitSemaphores: [VkSemaphore], signalSemaphores: [VkSemaphore]) throws
-
 	func draw() throws
 }
 
 extension VulkanRenderer {
-  public func findMemoryType(typeFilter: UInt32, properties: VkMemoryPropertyFlagBits) throws -> UInt32 {
+  func findMemoryType(typeFilter: UInt32, properties: VkMemoryPropertyFlagBits) throws -> UInt32 {
     var memoryProperties = VkPhysicalDeviceMemoryProperties()
     var memoryTypes = withUnsafePointer(to: &memoryProperties.memoryTypes) {
       $0.withMemoryRebound(to: VkMemoryType.self, capacity: 32) {
@@ -40,6 +35,25 @@ extension VulkanRenderer {
     }
 
     fatalError("no suitable memory type found")
+  }
+
+  func loadShaderModule(resourceName: String) throws -> VkShaderModule {
+    let shaderCode = try Data(contentsOf: Bundle.module.url(forResource: resourceName, withExtension: "spv")!)
+
+    var shaderModuleInfo = shaderCode.withUnsafeBytes {
+      VkShaderModuleCreateInfo(
+        sType: VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        pNext: nil,
+        flags: 0,
+        codeSize: shaderCode.count,
+        pCode: $0
+      )
+    }
+
+    var shaderModule: VkShaderModule? = nil
+    vkCreateShaderModule(device, &shaderModuleInfo, nil, &shaderModule)
+
+    return shaderModule!
   }
 
   func createImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkImageTiling, usage: VkImageUsageFlagBits, properties: VkMemoryPropertyFlagBits) throws -> (VkImage, VkDeviceMemory) {
