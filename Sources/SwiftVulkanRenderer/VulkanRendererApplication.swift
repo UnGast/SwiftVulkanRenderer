@@ -6,21 +6,23 @@ import GfxMath
 
 public class VulkanRendererApplication {
     let scene: Scene
+    let createRenderer: (VkInstance, VkSurfaceKHR) throws -> VulkanRenderer
     var renderer: VulkanRenderer?
 
     public var beforeFrame: ((Double) -> ())?
 
-    public init(scene: Scene) {
+    public init(createRenderer: @escaping (VkInstance, VkSurfaceKHR) throws -> VulkanRenderer, scene: Scene) {
         self.scene = scene
+        self.createRenderer = createRenderer
     }
 
     public func notifySceneContentsUpdated() throws {
-        try renderer?.sceneManager.updateSceneContent()
-        try renderer?.sceneManager.updateObjectInfos()
+        try renderer?.updateSceneContent()
+        try renderer?.updateSceneObjectMeta()
     }
 
     public func notifySceneObjectInfosUpdated() throws {
-        try renderer?.sceneManager.updateObjectInfos()
+        try renderer?.updateSceneObjectMeta()
     }
 
     func makeApiVersion(variant: UInt32, major: UInt32, minor: UInt32, patch: UInt32) -> UInt32 {
@@ -90,7 +92,7 @@ public class VulkanRendererApplication {
         var quit = false
 
         guard let surface = window.surface as? VLKWindowSurface else {
-        fatalError("incorrect surface")
+            fatalError("incorrect surface")
         }
 
         var frameCount = 0
@@ -103,10 +105,10 @@ public class VulkanRendererApplication {
         ]
 
         func setupRenderer() throws {
-            renderer = try VulkanRenderer(scene: scene, instance: surface.instance, surface: surface.surface)
-            try renderer?.sceneManager.updateSceneContent()
-            try renderer?.sceneManager.updateObjectInfos()
-            try renderer?.sceneManager.updateSceneUniform()
+            renderer = try createRenderer(surface.instance, surface.surface)
+            try renderer?.updateSceneContent()
+            try renderer?.updateSceneObjectMeta()
+            try renderer?.updateSceneCameraUniforms()
         }
         
         var previousFrameTimestamp = Date.timeIntervalSinceReferenceDate
@@ -132,7 +134,7 @@ public class VulkanRendererApplication {
                 usleep(2000 * 100)
             }
 
-            try renderer?.sceneManager.updateSceneUniform()
+            try renderer?.updateSceneCameraUniforms()
             try renderer?.draw()
 
             frameCount += 1

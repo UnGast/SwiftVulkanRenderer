@@ -2,7 +2,7 @@ import Vulkan
 import GfxMath
 
 public class SceneManager {
-  let renderer: VulkanRenderer
+  let renderer: RasterizationVulkanRenderer 
   var scene: Scene {
     renderer.scene
   }
@@ -30,7 +30,7 @@ public class SceneManager {
   var objectInfosWaitSemaphore: VkSemaphore?
   var uniformWaitSemaphore: VkSemaphore?
 
-  public init(renderer: VulkanRenderer) throws {
+  public init(renderer: RasterizationVulkanRenderer) throws {
     self.renderer = renderer
 
     drawCommandMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
