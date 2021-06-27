@@ -14,10 +14,12 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   @Deferred var swapchainImageFormat: VkFormat
   @Deferred public var swapchainExtent: VkExtent2D
   @Deferred var swapchainImages: [VkImage]
-  @Deferred var imageViews: [VkImageView]
+  @Deferred var swapchainImageViews: [VkImageView]
   @Deferred var textureSampler: VkSampler
 
   @Deferred var descriptorPool: VkDescriptorPool
+  @Deferred var framebufferDescriptorSetLayout: VkDescriptorSetLayout
+  @Deferred var framebufferDescriptorSets: [VkDescriptorSet]
   @Deferred var sceneDescriptorSetLayout: VkDescriptorSetLayout
   @Deferred var sceneDescriptorSet: VkDescriptorSet
 
@@ -54,6 +56,10 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     try createTextureSampler()
 
     try createDescriptorPool()
+
+    try createFramebufferDescriptorSetLayout()
+
+    try createFramebufferDescriptorSets()
 
     try createSceneDescriptorSetLayout()
 
@@ -170,17 +176,19 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       }
     }
 
+    self.swapchainImageFormat = VK_FORMAT_B8G8R8A8_UNORM
+
     var swapchainCreateInfo = VkSwapchainCreateInfoKHR(
       sType: VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       pNext: nil,
       flags: 0,
       surface: surface,
       minImageCount: capabilities.minImageCount + 1,
-      imageFormat: surfaceFormat.format,
+      imageFormat: swapchainImageFormat,
       imageColorSpace: surfaceFormat.colorSpace,
       imageExtent: capabilities.maxImageExtent,
       imageArrayLayers: 1,
-      imageUsage: VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT.rawValue,
+      imageUsage: VK_IMAGE_USAGE_STORAGE_BIT.rawValue,
       imageSharingMode: VK_SHARING_MODE_EXCLUSIVE,
       queueFamilyIndexCount: 0,
       pQueueFamilyIndices: [],
@@ -194,7 +202,6 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     var swapchain: VkSwapchainKHR? = nil
     vkCreateSwapchainKHR(device, &swapchainCreateInfo, nil, &swapchain)
     self.swapchain = swapchain!
-    self.swapchainImageFormat = surfaceFormat.format
     self.swapchainExtent = capabilities.maxImageExtent
 
     /*self.swapchain = try Swapchain.create(
@@ -244,7 +251,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   func createImageViews() throws {
-    self.imageViews = try swapchainImages.map {
+    self.swapchainImageViews = try swapchainImages.map {
       try createImageView(image: $0, format: swapchainImageFormat, aspectFlags: VK_IMAGE_ASPECT_COLOR_BIT)
     }
   }
@@ -297,6 +304,10 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_SAMPLER,
         descriptorCount: 1
+      ),
+      VkDescriptorPoolSize(
+        type: VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        descriptorCount: 6
       )
     ]
     var createInfo = VkDescriptorPoolCreateInfo(
@@ -313,6 +324,73 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     self.descriptorPool = descriptorPool!
   }
+
+  func createFramebufferDescriptorSetLayout() throws {
+    var samplers = [Optional(textureSampler)]
+    var bindings: [VkDescriptorSetLayoutBinding] = [
+      VkDescriptorSetLayoutBinding(
+        binding: 0,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
+        pImmutableSamplers: nil
+      )
+    ]
+    var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
+      sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      pNext: nil,
+      flags: 0,
+      bindingCount: UInt32(bindings.count),
+      pBindings: bindings
+    )
+
+    var descriptorSetLayout: VkDescriptorSetLayout? = nil
+    vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nil, &descriptorSetLayout)
+
+    self.framebufferDescriptorSetLayout = descriptorSetLayout!
+  }
+
+  func createFramebufferDescriptorSets() throws {
+    var setLayouts = Array(repeating: Optional(framebufferDescriptorSetLayout), count: swapchainImages.count)
+    var allocateInfo = VkDescriptorSetAllocateInfo(
+      sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+      pNext: nil,
+      descriptorPool: descriptorPool,
+      descriptorSetCount: UInt32(swapchainImages.count),
+      pSetLayouts: setLayouts
+    )
+    var descriptorSets = [VkDescriptorSet?](repeating: nil, count: swapchainImages.count)
+    
+    vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSets)
+
+    framebufferDescriptorSets = descriptorSets.map { $0! }
+
+    var descriptorWrites = [VkWriteDescriptorSet]()
+    for (index, imageView) in swapchainImageViews.enumerated() {
+      var imageInfo: [VkDescriptorImageInfo] = [
+        VkDescriptorImageInfo(
+          sampler: nil,
+          imageView: imageView,
+          imageLayout: VK_IMAGE_LAYOUT_GENERAL
+        )
+      ]
+
+      VkWriteDescriptorSet(
+        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        pNext: nil,
+        dstSet: descriptorSets[index],
+        dstBinding: 0,
+        dstArrayElement: 0,
+        descriptorCount: 1,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        pImageInfo: imageInfo,
+        pBufferInfo: nil,
+        pTexelBufferView: nil
+      )
+    }
+
+    vkUpdateDescriptorSets(device, UInt32(descriptorWrites.count), &descriptorWrites, 0, nil)
+ }
 
   func createSceneDescriptorSetLayout() throws {
     var samplers = [Optional(textureSampler)]
@@ -348,6 +426,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       descriptorSetCount: 1,
       pSetLayouts: setLayouts
     )
+
     var sceneDescriptorSet: VkDescriptorSet? = nil
     
     vkAllocateDescriptorSets(device, &allocateInfo, &sceneDescriptorSet)
