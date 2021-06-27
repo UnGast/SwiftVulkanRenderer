@@ -51,7 +51,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     try getSwapchainImages()
 
-    try createImageViews()
+    try createSwapchainImageViews()
 
     try createTextureSampler()
 
@@ -250,7 +250,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     self.swapchainImages = images.map { $0! }
   }
 
-  func createImageViews() throws {
+  func createSwapchainImageViews() throws {
     self.swapchainImageViews = try swapchainImages.map {
       try createImageView(image: $0, format: swapchainImageFormat, aspectFlags: VK_IMAGE_ASPECT_COLOR_BIT)
     }
@@ -365,17 +365,19 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     framebufferDescriptorSets = descriptorSets.map { $0! }
 
-    var descriptorWrites = [VkWriteDescriptorSet]()
-    for (index, imageView) in swapchainImageViews.enumerated() {
-      var imageInfo: [VkDescriptorImageInfo] = [
-        VkDescriptorImageInfo(
-          sampler: nil,
-          imageView: imageView,
-          imageLayout: VK_IMAGE_LAYOUT_GENERAL
-        )
-      ]
+    //var descriptorWrites = [VkWriteDescriptorSet](repeating: VkWriteDescriptorSet(), count: swapchainImageViews.count)
+    var imageInfos = [VkDescriptorImageInfo](repeating: VkDescriptorImageInfo(), count: swapchainImageViews.count)
 
-      VkWriteDescriptorSet(
+    for (index, imageView) in swapchainImageViews.enumerated() {
+      imageInfos[index] = VkDescriptorImageInfo(
+        sampler: nil,
+        imageView: imageView,
+        imageLayout: VK_IMAGE_LAYOUT_GENERAL
+      )
+    }
+
+    for index in 0..<swapchainImageViews.count {
+      var write = VkWriteDescriptorSet(
         sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         pNext: nil,
         dstSet: descriptorSets[index],
@@ -383,13 +385,16 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         dstArrayElement: 0,
         descriptorCount: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        pImageInfo: imageInfo,
+        pImageInfo: &imageInfos[index],
         pBufferInfo: nil,
         pTexelBufferView: nil
       )
-    }
 
-    vkUpdateDescriptorSets(device, UInt32(descriptorWrites.count), &descriptorWrites, 0, nil)
+      // currently need to perform the write here instead of in bulk, because otherwise
+      // there are some memory issues and the write is not executed
+      // correctly for some reason
+      vkUpdateDescriptorSets(device, 1, &write, 0, nil)
+    }
  }
 
   func createSceneDescriptorSetLayout() throws {
@@ -472,7 +477,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       pSpecializationInfo: nil
     )
 
-    var setLayouts = [Optional(sceneDescriptorSetLayout)]
+    var setLayouts = [Optional(framebufferDescriptorSetLayout), Optional(sceneDescriptorSetLayout)]
     var pipelineLayoutInfo = VkPipelineLayoutCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       pNext: nil,
@@ -545,6 +550,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo)
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline)
+    var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex])]
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, descriptorSets, 0, nil)
     vkCmdDispatch(commandBuffer, 1, 1, 1)
 
     vkEndCommandBuffer(commandBuffer)

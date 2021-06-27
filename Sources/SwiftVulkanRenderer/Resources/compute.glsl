@@ -3,6 +3,8 @@
 #extension GL_EXT_nonuniform_qualifier:enable
 
 layout (local_size_x = 256) in;
+
+layout(set = 0, binding = 0) uniform writeonly image2D image;
 /*
 struct Material {
   uint textureIndex;
@@ -37,4 +39,9 @@ layout(set = 0, binding = 4) readonly buffer MaterialBuffer{
 layout(location=0) out vec4 outColor;*/
 
 void main() {
+  for (int x = 0; x < 200; x += 1) {
+    for (int y = 0; y < 200; y += 1) {
+      imageStore(image, ivec2(x, y), vec4(1.0, 0.5, 0.1, 1.0));
+    }
+  }
 }
