@@ -381,7 +381,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   func createComputePipeline() throws {
-    let shaderModule = try loadShaderModule(resourceName: "vertex")
+    let shaderModule = try loadShaderModule(resourceName: "compute")
 
     var shaderStageInfo = VkPipelineShaderStageCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -392,8 +392,6 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       pName: strdup("main"),
       pSpecializationInfo: nil
     )
-
-    var shaderStageInfos = [shaderStageInfo]
 
     var setLayouts = [Optional(sceneDescriptorSetLayout)]
     var pipelineLayoutInfo = VkPipelineLayoutCreateInfo(
@@ -413,42 +411,23 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       fatalError("could not create pipeline layout")
     }
 
-    /*var pipelineInfo = VkGraphicsPipelineCreateInfo(
-      sType: VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+    var pipelineCreateInfo = VkComputePipelineCreateInfo(
+      sType: VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
       pNext: nil,
       flags: 0,
-      stageCount: UInt32(shaderStageInfos.count),
-      pStages: &shaderStageInfos,
-      pVertexInputState: &vertexInputStateInfo,
-      pInputAssemblyState: &inputAssemblyStateInfo,
-      pTessellationState: nil,
-      pViewportState: &viewportStateInfo,
-      pRasterizationState: &rasterizationStateInfo,
-      pMultisampleState: &multisampleStateInfo,
-      pDepthStencilState: &depthStencilStateInfo,
-      pColorBlendState: &colorBlendStateInfo,
-      pDynamicState: nil,
+      stage: shaderStageInfo,
       layout: pipelineLayout,
-      renderPass: renderPass,
-      subpass: 0,
       basePipelineHandle: nil,
       basePipelineIndex: 0
     )
 
+    var createInfos = [pipelineCreateInfo]
     var pipeline: VkPipeline? = nil
-    vkCreateGraphicsPipelines(device, nil, 1, &pipelineInfo, nil, &pipeline)
+    vkCreateComputePipelines(device, nil, 1, createInfos, nil, &pipeline)
 
-    self.computePipeline = pipeline!*/
+    self.computePipeline = pipeline!
     self.computePipelineLayout = pipelineLayout
   }
-
-  /// used when descriptor count changed, e.g. for material texture descriptors
-  /*func recreateGraphicsPipeline() throws {
-    vkDestroyDescriptorSetLayout(device, sceneDescriptorSetLayout, nil)
-    try createSceneDescriptorSetLayout()
-    try createSceneDescriptorSet()
-    try createComputePipeline()
-  }*/
 
   func createCommandPool() throws {
     var commandPoolInfo = VkCommandPoolCreateInfo(
@@ -486,9 +465,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     )
     vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo)
 
-    //vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, computePipeline)
-
-    vkCmdEndRenderPass(commandBuffer)
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline)
+    vkCmdDispatch(commandBuffer, 1, 1, 1)
 
     vkEndCommandBuffer(commandBuffer)
 
@@ -514,6 +492,10 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     var waitFences = [acquireFence]
     vkWaitForFences(device, 1, waitFences, 1, 10000000)
 
+    let currentImage = swapchainImages[Int(currentSwapchainImageIndex)]
+    try transitionImageLayout(image: currentImage, format: swapchainImageFormat, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_GENERAL)
+    vkDeviceWaitIdle(device)
+
     let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(currentSwapchainImageIndex))
 
     var submitCommandBuffers = [Optional(commandBuffer)]
@@ -536,6 +518,9 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     )
     vkQueueSubmit(queue, 1, &submitInfo, nil)
 
+    vkDeviceWaitIdle(device)
+
+    try transitionImageLayout(image: currentImage, format: swapchainImageFormat, oldLayout: VK_IMAGE_LAYOUT_GENERAL, newLayout: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
     vkDeviceWaitIdle(device)
 
     var presentSwapchains = [Optional(swapchain)]

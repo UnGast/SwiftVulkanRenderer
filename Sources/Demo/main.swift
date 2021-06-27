@@ -31,7 +31,7 @@ scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20, material
 scene.camera.position = FVec3(0, 2, -10)
 
 let application = VulkanRendererApplication(createRenderer: {
-	try RasterizationVulkanRenderer(scene: scene, instance: $0, surface: $1)
+	try RaytracingVulkanRenderer(scene: scene, instance: $0, surface: $1)
 }, scene: scene) 
 
 DispatchQueue.global().async {
