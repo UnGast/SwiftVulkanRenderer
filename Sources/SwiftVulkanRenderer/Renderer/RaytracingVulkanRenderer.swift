@@ -307,14 +307,14 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       ),
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        descriptorCount: 6
+        descriptorCount: UInt32(swapchainImages.count)
       )
     ]
     var createInfo = VkDescriptorPoolCreateInfo(
       sType: VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       pNext: nil,
       flags: 0,
-      maxSets: 1,
+      maxSets: UInt32(swapchainImages.count) + 1,
       poolSizeCount: UInt32(poolSizes.count),
       pPoolSizes: &poolSizes
     )
@@ -359,6 +359,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       descriptorSetCount: UInt32(swapchainImages.count),
       pSetLayouts: setLayouts
     )
+
     var descriptorSets = [VkDescriptorSet?](repeating: nil, count: swapchainImages.count)
     
     vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSets)
