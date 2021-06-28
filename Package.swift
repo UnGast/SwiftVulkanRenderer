@@ -38,6 +38,10 @@ let package = Package(
             name: "Demo",
             dependencies: ["SwiftVulkanRenderer", "GfxMath", "Swim"]
         ),
+        .target(
+            name: "RaytracingDemo",
+            dependencies: ["SwiftVulkanRenderer", "GfxMath", "Swim"]
+        ),
         .target(name: "CTinyObjLoader")
     ]
 )
