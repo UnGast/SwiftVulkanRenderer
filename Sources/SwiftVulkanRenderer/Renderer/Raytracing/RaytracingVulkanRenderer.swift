@@ -55,6 +55,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     try createTextureSampler()
 
+    sceneManager = SceneManager(renderer: self)
+
     try createDescriptorPool()
 
     try createFramebufferDescriptorSetLayout()
