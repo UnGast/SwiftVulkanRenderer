@@ -17,6 +17,18 @@ extension BufferSerializable {
     }
 }
 
+public protocol SingleScalarArrayBufferSerializable: BufferSerializable {
+    associatedtype ScalarType
+    var serializedData: [ScalarType] { get }
+}
+
+extension SingleScalarArrayBufferSerializable {
+    public func serialize(into buffer: UnsafeMutableRawPointer, offset: Int) {
+        let serializedData = self.serializedData
+        buffer.advanced(by: offset).copyMemory(from: serializedData, byteCount: MemoryLayout<ScalarType>.stride * serializedData.count)
+    }
+}
+
 extension FVec3: BufferSerializable {
     public static var serializedBaseAlignment: Int {
         MemoryLayout<Float>.size
