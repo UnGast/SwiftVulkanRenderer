@@ -55,6 +55,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     try createTextureSampler()
 
+    try createCommandPool()
+
     sceneManager = try SceneManager(renderer: self)
 
     try createDescriptorPool()
@@ -66,10 +68,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     try createSceneDescriptorSetLayout()
 
     try createSceneDescriptorSet()
-
+  
     try createComputePipeline()
-
-    try createCommandPool()
   }
 
   public func updateSceneContent() throws {
@@ -441,9 +441,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     vkAllocateDescriptorSets(device, &allocateInfo, &sceneDescriptorSet)
 
     self.sceneDescriptorSet = sceneDescriptorSet!
-  }
 
-  func updateSceneDescriptorSet() throws {
     var uniformObjectBufferInfo = VkDescriptorBufferInfo(
       buffer: sceneManager.objectGeometryBuffer.buffer,
       offset: 0,
@@ -466,6 +464,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     ]
 
     vkUpdateDescriptorSets(device, UInt32(descriptorWrites.count), &descriptorWrites, 0, nil)
+
   }
 
   func createComputePipeline() throws {
@@ -555,7 +554,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline)
     var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex]), Optional(sceneDescriptorSet)]
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, descriptorSets, 0, nil)
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, UInt32(descriptorSets.count), descriptorSets, 0, nil)
     vkCmdDispatch(commandBuffer, 1, 1, 1)
 
     vkEndCommandBuffer(commandBuffer)

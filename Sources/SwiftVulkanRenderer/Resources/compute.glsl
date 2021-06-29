@@ -4,10 +4,11 @@
 
 layout (local_size_x = 256) in;
 
-layout(set = 0, binding = 0) uniform writeonly image2D image;
+layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
 layout(set = 1, binding = 0) buffer TestData {
-  int width;
-  int height;
+  float cR;
+  float cG;
+  float cB;
 };
 /*
 struct Material {
@@ -43,9 +44,11 @@ layout(set = 0, binding = 4) readonly buffer MaterialBuffer{
 layout(location=0) out vec4 outColor;*/
 
 void main() {
-  for (int x = 0; x < 200; x += 1) {
-    for (int y = 0; y < 200; y += 1) {
-      imageStore(image, ivec2(x, y), vec4(1.0, 0.5, 0.1, 1.0));
+  ivec2 frameImageSize = imageSize(frameImage);
+
+  for (int x = 0; x < frameImageSize.x; x += 1) {
+    for (int y = 0; y < frameImageSize.y; y += 1) {
+      imageStore(frameImage, ivec2(x, y), vec4(cR, cG, cB, 1.0));
     }
   }
 }

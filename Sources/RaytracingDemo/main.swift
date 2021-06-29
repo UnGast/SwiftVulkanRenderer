@@ -34,6 +34,7 @@ let application = VulkanRendererApplication(createRenderer: {
 	try RaytracingVulkanRenderer(scene: scene, instance: $0, surface: $1)
 }, scene: scene) 
 
+
 DispatchQueue.global().async {
 	var nextX = Float(0)
 	while true {
@@ -59,7 +60,13 @@ DispatchQueue.global().async {
 	}
 }
 
+var frameCount = 0
+
 application.beforeFrame = { _ in
+	frameCount += 1
+	if frameCount > 2000 {
+		exit(0)
+	}
 	scene.directionalLight.direction.x = Float(sin(Date.timeIntervalSinceReferenceDate))
 	scene.directionalLight.direction.z = Float(cos(Date.timeIntervalSinceReferenceDate))
 }
