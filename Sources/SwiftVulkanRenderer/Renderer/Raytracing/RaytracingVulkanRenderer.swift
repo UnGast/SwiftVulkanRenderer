@@ -79,6 +79,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   public func updateSceneCameraUniforms() throws {
+    // camera stuff handled via push constants
   }
 
 	func pickPhysicalDevice() throws {
@@ -481,14 +482,21 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     )
 
     var setLayouts = [Optional(framebufferDescriptorSetLayout), Optional(sceneDescriptorSetLayout)]
+    var pushConstantRanges = [
+      VkPushConstantRange(
+        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
+        offset: 0,
+        size: UInt32(PushConstantBlock.serializedSize)
+      )
+    ]
     var pipelineLayoutInfo = VkPipelineLayoutCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       pNext: nil,
       flags: 0,
       setLayoutCount: UInt32(setLayouts.count),
       pSetLayouts: setLayouts,
-      pushConstantRangeCount: 0,
-      pPushConstantRanges: nil
+      pushConstantRangeCount: UInt32(pushConstantRanges.count),
+      pPushConstantRanges: pushConstantRanges
     )
 
     var pipelineLayoutOpt: VkPipelineLayout? = nil
@@ -553,6 +561,11 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo)
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline)
+    let pushConstants = PushConstantBlock(
+      cameraPosition: scene.camera.position,
+      cameraDirection: scene.camera.forward
+    )
+    vkCmdPushConstants(commandBuffer, computePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT.rawValue, 0, UInt32(PushConstantBlock.serializedSize), pushConstants.serializedData)
     var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex]), Optional(sceneDescriptorSet)]
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, UInt32(descriptorSets.count), descriptorSets, 0, nil)
     vkCmdDispatch(commandBuffer, 1, 1, 1)

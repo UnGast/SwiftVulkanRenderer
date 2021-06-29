@@ -28,7 +28,7 @@ scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20, material
 	0, 0, 0, 1
 ])))
 
-scene.camera.position = FVec3(0, 2, -10)
+scene.camera.position = FVec3(0, 0, -3)
 
 let application = VulkanRendererApplication(createRenderer: {
 	try RaytracingVulkanRenderer(scene: scene, instance: $0, surface: $1)
