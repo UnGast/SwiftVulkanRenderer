@@ -46,11 +46,21 @@ layout(set = 0, binding = 4) readonly buffer MaterialBuffer{
 
 layout(location=0) out vec4 outColor;*/
 
+float getAreaOfTriangle(vec3 vertex1Position, vec3 vertex2Position, vec3 vertex3Position) {
+  vec3 edge1 = vertex2Position - vertex1Position;
+  vec3 edge2 = vertex3Position - vertex1Position; 
+  return length(cross(edge1, edge2));
+}
+
 vec3 getBarycentricCoordinates(vec3 point, vec3 vertex1Position, vec3 vertex2Position, vec3 vertex3Position) {
-  vec3 primaryEdge1 = vertex2Position - vertex1Position;
-  vec3 primaryEdge2 = vertex3Position - vertex1Position; 
-  float primaryArea = length(cross(primaryEdge1, primaryEdge2));
-  return point;
+  float primaryArea = getAreaOfTriangle(vertex1Position, vertex2Position, vertex3Position);
+  float secondaryArea1 = getAreaOfTriangle(vertex1Position, point, vertex2Position);
+  float secondaryArea2 = getAreaOfTriangle(vertex2Position, point, vertex3Position);
+  float secondaryArea3 = getAreaOfTriangle(vertex3Position, point, vertex1Position);
+  float u = secondaryArea1 / primaryArea;
+  float v = secondaryArea2 / primaryArea;
+  float w = secondaryArea3 / primaryArea;
+  return vec3(u, v, w);
 }
 
 vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
@@ -59,13 +69,16 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
   bool firstHit = true;
   float closestIntersectionScale = 0;
   vec3 closestIntersection = vec3(0, 0, 0); // this value signifies no intersection
-  int faceCount = 4;
+  int faceCount = 1;
   for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
     int baseVertexIndex = faceCount * 3;
 
     Vertex vertex1 = vertices[baseVertexIndex];
     Vertex vertex2 = vertices[baseVertexIndex + 1];
     Vertex vertex3 = vertices[baseVertexIndex + 2];
+    vertex1.position = vec3(-1, 1, 0.1);
+    vertex2.position = vec3(1, 0.1, 0.1);
+    vertex3.position = vec3(-0.5, -0.5, 0.1);
 
     vec3 edge1 = vertex2.position - vertex1.position;
     vec3 edge2 = vertex3.position - vertex2.position;
@@ -79,7 +92,7 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
       continue;
     }
 
-    float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, rayOrigin)) / faceNormalRayDot;
+    float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
 
     if (intersectionScale < 0.001) {
       continue;
@@ -90,9 +103,10 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
 
       vec3 barycentricIntersection = getBarycentricCoordinates(intersection, vertex1.position, vertex2.position, vertex3.position);
 
-      if (dot(barycentricIntersection, vec3(1, 1, 1)) <= 1) {
+      float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
+      if (barycentricSum < 1) {
         closestIntersectionScale = intersectionScale;
-        closestIntersection = intersection;
+        closestIntersection = vec3(0, 1, 0);
         firstHit = false;
       }
     }
@@ -104,8 +118,8 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
 void main() {
   ivec2 frameImageSize = imageSize(frameImage);
 
-  vec3 cameraPosition = vec3(0, 0, -10);
-  vec3 surfaceOrigin = vec3(0, 0, -10.01);
+  vec3 cameraPosition = vec3(0, 0, -1);
+  vec3 surfaceOrigin = vec3(0, 0, cameraPosition.z + 0.1);
   vec3 surfaceRight = vec3(1, 0, 0);
   vec3 surfaceUp = vec3(0, 1, 0);
   vec2 surfaceSize = vec2(1, 1);
