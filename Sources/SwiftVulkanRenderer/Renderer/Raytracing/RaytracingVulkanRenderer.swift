@@ -563,7 +563,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline)
     let pushConstants = PushConstantBlock(
       cameraPosition: scene.camera.position,
-      cameraDirection: scene.camera.forward
+      cameraForwardDirection: scene.camera.forward,
+      cameraRightDirection: scene.camera.right
     )
     vkCmdPushConstants(commandBuffer, computePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT.rawValue, 0, UInt32(PushConstantBlock.serializedSize), pushConstants.serializedData)
     var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex]), Optional(sceneDescriptorSet)]

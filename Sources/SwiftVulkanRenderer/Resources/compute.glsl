@@ -14,7 +14,8 @@ struct Vertex{
 
 layout(push_constant) uniform PushConstants{
   vec3 cameraPosition;
-  vec3 cameraDirection;
+  vec3 cameraForwardDirection;
+  vec3 cameraRightDirection;
 };
 layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
 layout(set = 1, binding = 0) buffer VertexBuffer{
@@ -128,10 +129,11 @@ void main() {
   uint startY = yRangeStep * gl_LocalInvocationID.y;
   uint endY = min(frameImageSize.y, startY + yRangeStep);
 
-  vec3 surfaceOrigin = vec3(0, 0, cameraPosition.z + 0.1);
-  vec3 surfaceRight = vec3(1, 0, 0);
-  vec3 surfaceUp = vec3(0, 1, 0);
-  vec2 surfaceSize = vec2(1, 1);
+  vec3 normalizedCameraForwardDirection = normalize(cameraForwardDirection);
+  vec3 surfaceOrigin = cameraPosition + normalizedCameraForwardDirection * 0.1;
+  vec3 surfaceRight = normalize(cameraRightDirection);
+  vec3 surfaceUp = normalize(cross(surfaceRight, normalizedCameraForwardDirection));
+  vec2 surfaceSize = vec2(1, float(frameImageSize.y) / float(frameImageSize.x));
 
   for (uint x = startX; x < endX; x += 1) {
     for (uint y = startY; y < endY; y += 1) {

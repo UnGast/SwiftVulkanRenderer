@@ -124,7 +124,8 @@ public class VulkanRendererApplication {
                 //print("fps", 1 / (fiveFramesDuration / 5))
             }
 
-            beforeFrame?(currentFrameTimestamp - previousFrameTimestamp)
+            let timeSinceLastFrame = currentFrameTimestamp - previousFrameTimestamp
+            beforeFrame?(timeSinceLastFrame)
 
             previousFrameTimestamp = currentFrameTimestamp
 
@@ -175,7 +176,7 @@ public class VulkanRendererApplication {
             }
 
             var deltaMove = FVec3.zero
-            var stepSize: Float = 0.01
+            var stepSize: Float = Float(timeSinceLastFrame) * 1 // one unit per second speed
             if keysActive[.UP]! {
                 deltaMove += scene.camera.forward * stepSize
             }
