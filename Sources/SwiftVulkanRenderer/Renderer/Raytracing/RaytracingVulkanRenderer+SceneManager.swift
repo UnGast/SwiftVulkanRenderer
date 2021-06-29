@@ -34,7 +34,13 @@ extension RaytracingVulkanRenderer {
       let testMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
       let cube = Mesh.cuboid(material: testMaterial)
 
-      let vertexData = cube.flatVertices.flatMap { $0.serializedData }
+      var vertexData = [Float]()
+      for vertex in cube.flatVertices {
+        vertexData.append(contentsOf: vertex.position.elements)
+        vertexData.append(contentsOf: [0])
+        vertexData.append(contentsOf: vertex.normal.elements)
+        vertexData.append(contentsOf: [0])
+      }
       try mainStagingBuffer.store(vertexData)
 
       try objectGeometryBuffer.copy(from: mainStagingBuffer, srcRange: 0..<(vertexData.count * MemoryLayout<Float>.size), dstOffset: 0, commandBuffer: commandBuffer)

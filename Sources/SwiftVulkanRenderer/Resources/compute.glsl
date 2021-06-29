@@ -7,7 +7,9 @@ layout (local_size_y = 24) in;
 
 struct Vertex{
   vec3 position;
+  float t1;
   vec3 normal;
+  float t2;
 };
 
 layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
@@ -70,16 +72,13 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
   bool firstHit = true;
   float closestIntersectionScale = 0;
   vec3 closestIntersection = vec3(0, 0, 0); // this value signifies no intersection
-  int faceCount = 1;
+  int faceCount = 12;
   for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
-    int baseVertexIndex = faceCount * 3;
+    int baseVertexIndex = faceIndex * 3;
 
     Vertex vertex1 = vertices[baseVertexIndex];
     Vertex vertex2 = vertices[baseVertexIndex + 1];
     Vertex vertex3 = vertices[baseVertexIndex + 2];
-    vertex1.position = vec3(-1, 1, 0.1);
-    vertex2.position = vec3(1, 0.1, 0.1);
-    vertex3.position = vec3(-0.5, -0.5, 0.1);
 
     vec3 edge1 = vertex2.position - vertex1.position;
     vec3 edge2 = vertex3.position - vertex2.position;
@@ -105,9 +104,9 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
       vec3 barycentricIntersection = getBarycentricCoordinates(intersection, vertex1.position, vertex2.position, vertex3.position);
 
       float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
-      if (barycentricSum < 1) {
+      if (abs(barycentricSum - 1) <= 0.01) {
         closestIntersectionScale = intersectionScale;
-        closestIntersection = vec3(0, 1, 0);
+        closestIntersection = vec3(0, float(faceIndex), 1);
         firstHit = false;
       }
     }
@@ -117,7 +116,13 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
 }
 
 void main() {
-  ivec2 frameImageSize = imageSize(frameImage);
+  uvec2 frameImageSize = imageSize(frameImage);
+  uint xRangeStep = frameImageSize.x / gl_WorkGroupSize.x;
+  uint yRangeStep = frameImageSize.y / gl_WorkGroupSize.y;
+  uint startX = xRangeStep * gl_LocalInvocationID.x;
+  uint endX = min(frameImageSize.x, startX + xRangeStep);
+  uint startY = yRangeStep * gl_LocalInvocationID.y;
+  uint endY = min(frameImageSize.y, startY + yRangeStep);
 
   vec3 cameraPosition = vec3(0, 0, -1);
   vec3 surfaceOrigin = vec3(0, 0, cameraPosition.z + 0.1);
@@ -125,8 +130,8 @@ void main() {
   vec3 surfaceUp = vec3(0, 1, 0);
   vec2 surfaceSize = vec2(1, 1);
 
-  for (int x = 0; x < frameImageSize.x; x += 1) {
-    for (int y = 0; y < frameImageSize.y; y += 1) {
+  for (uint x = startX; x < endX; x += 1) {
+    for (uint y = startY; y < endY; y += 1) {
       imageStore(frameImage, ivec2(x, y), vec4(0.2, 0.4, 1, 1));
 
       vec2 relativePositionOnSurface = vec2(float(x) / float(frameImageSize.x), float(y) / float(frameImageSize.y));
