@@ -55,7 +55,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     try createTextureSampler()
 
-    sceneManager = SceneManager(renderer: self)
+    sceneManager = try SceneManager(renderer: self)
 
     try createDescriptorPool()
 
@@ -403,14 +403,15 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   func createSceneDescriptorSetLayout() throws {
     var samplers = [Optional(textureSampler)]
     var bindings: [VkDescriptorSetLayoutBinding] = [
-      /*VkDescriptorSetLayoutBinding(
+      VkDescriptorSetLayoutBinding(
         binding: 0,
-        descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         descriptorCount: 1,
-        stageFlags: VK_SHADER_STAGE_VERTEX_BIT.rawValue | VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
+        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
         pImmutableSamplers: nil
-      )*/
+      )
     ]
+
     var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
       sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       pNext: nil,
@@ -443,25 +444,25 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   func updateSceneDescriptorSet() throws {
-    /*var uniformObjectBufferInfo = VkDescriptorBufferInfo(
-      buffer: sceneManager.uniformSceneBuffer.buffer,
+    var uniformObjectBufferInfo = VkDescriptorBufferInfo(
+      buffer: sceneManager.objectGeometryBuffer.buffer,
       offset: 0,
-      range: VkDeviceSize(SceneUniformObject.serializedSize)
-    )*/
+      range: VK_WHOLE_SIZE
+    )
 
     var descriptorWrites: [VkWriteDescriptorSet] = [
-      /*VkWriteDescriptorSet(
+      VkWriteDescriptorSet(
         sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         pNext: nil,
         dstSet: sceneDescriptorSet,
         dstBinding: 0,
         dstArrayElement: 0,
         descriptorCount: 1,
-        descriptorType: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
         pBufferInfo: &uniformObjectBufferInfo,
         pTexelBufferView: nil
-      )*/
+      )
     ]
 
     vkUpdateDescriptorSets(device, UInt32(descriptorWrites.count), &descriptorWrites, 0, nil)
@@ -553,7 +554,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo)
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline)
-    var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex])]
+    var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex]), Optional(sceneDescriptorSet)]
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, descriptorSets, 0, nil)
     vkCmdDispatch(commandBuffer, 1, 1, 1)
 

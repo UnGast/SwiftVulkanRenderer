@@ -5,6 +5,10 @@
 layout (local_size_x = 256) in;
 
 layout(set = 0, binding = 0) uniform writeonly image2D image;
+layout(set = 1, binding = 0) buffer TestData {
+  int width;
+  int height;
+};
 /*
 struct Material {
   uint textureIndex;
