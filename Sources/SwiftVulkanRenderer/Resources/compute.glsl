@@ -2,7 +2,8 @@
 #extension GL_ARB_separate_shader_objects:enable
 #extension GL_EXT_nonuniform_qualifier:enable
 
-layout (local_size_x = 256) in;
+layout (local_size_x = 24) in;
+layout (local_size_y = 24) in;
 
 struct Vertex{
   vec3 position;
