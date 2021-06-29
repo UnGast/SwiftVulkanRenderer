@@ -1,4 +1,5 @@
 import Vulkan
+import Swim
 
 extension RaytracingVulkanRenderer {
   class SceneManager {
@@ -30,9 +31,13 @@ extension RaytracingVulkanRenderer {
       
       let commandBuffer = try renderer.beginSingleTimeCommands()
 
-      try mainStagingBuffer.store([Float(0.1), Float(0.2), Float(1)])
+      let testMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
+      let cube = Mesh.cuboid(material: testMaterial)
 
-      try objectGeometryBuffer.copy(from: mainStagingBuffer, srcRange: 0..<3 * 4, dstOffset: 0, commandBuffer: commandBuffer)
+      let vertexData = cube.flatVertices.flatMap { $0.serializedData }
+      try mainStagingBuffer.store(vertexData)
+
+      try objectGeometryBuffer.copy(from: mainStagingBuffer, srcRange: 0..<(vertexData.count * MemoryLayout<Float>.size), dstOffset: 0, commandBuffer: commandBuffer)
 
       try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
     }

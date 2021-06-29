@@ -4,11 +4,14 @@
 
 layout (local_size_x = 256) in;
 
+struct Vertex{
+  vec3 position;
+  vec3 normal;
+};
+
 layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
-layout(set = 1, binding = 0) buffer TestData {
-  float cR;
-  float cG;
-  float cB;
+layout(set = 1, binding = 0) buffer VertexBuffer{
+  Vertex vertices[];
 };
 /*
 struct Material {
@@ -43,12 +46,84 @@ layout(set = 0, binding = 4) readonly buffer MaterialBuffer{
 
 layout(location=0) out vec4 outColor;*/
 
+vec3 getBarycentricCoordinates(vec3 point, vec3 vertex1Position, vec3 vertex2Position, vec3 vertex3Position) {
+  vec3 primaryEdge1 = vertex2Position - vertex1Position;
+  vec3 primaryEdge2 = vertex3Position - vertex1Position; 
+  float primaryArea = length(cross(primaryEdge1, primaryEdge2));
+  return point;
+}
+
+vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
+  vec3 normalizedRayDirection = normalize(rayDirection);
+
+  bool firstHit = true;
+  float closestIntersectionScale = 0;
+  vec3 closestIntersection = vec3(0, 0, 0); // this value signifies no intersection
+  int faceCount = 4;
+  for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
+    int baseVertexIndex = faceCount * 3;
+
+    Vertex vertex1 = vertices[baseVertexIndex];
+    Vertex vertex2 = vertices[baseVertexIndex + 1];
+    Vertex vertex3 = vertices[baseVertexIndex + 2];
+
+    vec3 edge1 = vertex2.position - vertex1.position;
+    vec3 edge2 = vertex3.position - vertex2.position;
+    vec3 edge3 = vertex1.position - vertex3.position;
+
+    vec3 faceOrigin = vertex1.position;
+    vec3 computedFaceNormal = normalize(cross(edge1, edge2));
+
+    float faceNormalRayDot = dot(computedFaceNormal, normalizedRayDirection);
+    if (faceNormalRayDot == 0) {
+      continue;
+    }
+
+    float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, rayOrigin)) / faceNormalRayDot;
+
+    if (intersectionScale < 0.001) {
+      continue;
+    }
+
+    if (intersectionScale < closestIntersectionScale || firstHit) {
+      vec3 intersection = rayOrigin + normalizedRayDirection * intersectionScale;
+
+      vec3 barycentricIntersection = getBarycentricCoordinates(intersection, vertex1.position, vertex2.position, vertex3.position);
+
+      if (dot(barycentricIntersection, vec3(1, 1, 1)) <= 1) {
+        closestIntersectionScale = intersectionScale;
+        closestIntersection = intersection;
+        firstHit = false;
+      }
+    }
+  }
+
+  return closestIntersection; // signifies no intersection
+}
+
 void main() {
   ivec2 frameImageSize = imageSize(frameImage);
 
+  vec3 cameraPosition = vec3(0, 0, -10);
+  vec3 surfaceOrigin = vec3(0, 0, -10.01);
+  vec3 surfaceRight = vec3(1, 0, 0);
+  vec3 surfaceUp = vec3(0, 1, 0);
+  vec2 surfaceSize = vec2(1, 1);
+
   for (int x = 0; x < frameImageSize.x; x += 1) {
     for (int y = 0; y < frameImageSize.y; y += 1) {
-      imageStore(frameImage, ivec2(x, y), vec4(cR, cG, cB, 1.0));
+      imageStore(frameImage, ivec2(x, y), vec4(0.2, 0.4, 1, 1));
+
+      vec2 relativePositionOnSurface = vec2(float(x) / float(frameImageSize.x), float(y) / float(frameImageSize.y));
+      vec2 positionOnSurface = relativePositionOnSurface * surfaceSize;
+      vec2 centeredPositionOnSurface = positionOnSurface - surfaceSize / 2;
+      vec3 lookAtPoint = surfaceOrigin + centeredPositionOnSurface.x * surfaceRight + centeredPositionOnSurface.y * surfaceUp;
+
+      vec3 rayDirection = lookAtPoint - cameraPosition;
+
+      vec3 closestHitPoint = getClosestHit(cameraPosition, rayDirection);
+
+      imageStore(frameImage, ivec2(x, y), vec4(closestHitPoint, 1));
     }
   }
 }

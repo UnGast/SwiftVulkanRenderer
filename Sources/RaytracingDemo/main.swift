@@ -69,6 +69,8 @@ application.beforeFrame = { _ in
 	}
 	scene.directionalLight.direction.x = Float(sin(Date.timeIntervalSinceReferenceDate))
 	scene.directionalLight.direction.z = Float(cos(Date.timeIntervalSinceReferenceDate))
+
+	usleep(UInt32(1e4))
 }
 
 try application.run()
