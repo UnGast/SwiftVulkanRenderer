@@ -24,7 +24,7 @@ layout(push_constant) uniform PushConstants{
   vec3 cameraForwardDirection;
   vec3 cameraRightDirection;
   uint unusedPlaceholder; // only used because for last value, packing is different? uint will be put directly after vec3 not like other vec3 which are stored like vec4
-  uint triangleCount;
+  uint objectCount;
 };
 layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
 layout(set = 1, binding = 0) buffer VertexBuffer{
@@ -89,45 +89,50 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
   bool firstHit = true;
   float closestIntersectionScale = 0;
   vec3 closestIntersection = vec3(0, 0, 0); // this value signifies no intersection
-  for (int faceIndex = 0; faceIndex < triangleCount; faceIndex++) {
-    int baseVertexIndex = faceIndex * 3;
 
-    ObjectDrawInfo objectDrawInfo = objectDrawInfos[0];
-    Vertex vertex1 = vertices[baseVertexIndex];
-    Vertex vertex2 = vertices[baseVertexIndex + 1];
-    Vertex vertex3 = vertices[baseVertexIndex + 2];
-    //vertex1.position = (objectDrawInfo.transformationMatrix * vec4(vertex1.position, 1)).xyz;
-    //vertex2.position = (objectDrawInfo.transformationMatrix * vec4(vertex2.position, 1)).xyz;
-    //vertex3.position = (objectDrawInfo.transformationMatrix * vec4(vertex3.position, 1)).xyz;
+  for (int objectIndex = 0; objectIndex < objectCount; objectIndex++) {
+    ObjectDrawInfo objectDrawInfo = objectDrawInfos[objectIndex];
+    uint faceCount = objectDrawInfo.vertexCount / 3;
 
-    vec3 edge1 = vertex2.position - vertex1.position;
-    vec3 edge2 = vertex3.position - vertex2.position;
-    vec3 edge3 = vertex1.position - vertex3.position;
+    for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
+      uint baseVertexIndex = objectDrawInfo.firstVertexIndex + faceIndex * 3;
 
-    vec3 faceOrigin = vertex1.position;
-    vec3 computedFaceNormal = normalize(cross(edge1, edge2));
+      Vertex vertex1 = vertices[baseVertexIndex];
+      Vertex vertex2 = vertices[baseVertexIndex + 1];
+      Vertex vertex3 = vertices[baseVertexIndex + 2];
+      vertex1.position = (objectDrawInfo.transformationMatrix * vec4(vertex1.position, 1)).xyz;
+      vertex2.position = (objectDrawInfo.transformationMatrix * vec4(vertex2.position, 1)).xyz;
+      vertex3.position = (objectDrawInfo.transformationMatrix * vec4(vertex3.position, 1)).xyz;
 
-    float faceNormalRayDot = dot(computedFaceNormal, normalizedRayDirection);
-    if (faceNormalRayDot == 0) {
-      continue;
-    }
+      vec3 edge1 = vertex2.position - vertex1.position;
+      vec3 edge2 = vertex3.position - vertex2.position;
+      vec3 edge3 = vertex1.position - vertex3.position;
 
-    float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
+      vec3 faceOrigin = vertex1.position;
+      vec3 computedFaceNormal = normalize(cross(edge1, edge2));
 
-    if (intersectionScale < 0.001) {
-      continue;
-    }
+      float faceNormalRayDot = dot(computedFaceNormal, normalizedRayDirection);
+      if (faceNormalRayDot == 0) {
+        continue;
+      }
 
-    if (intersectionScale < closestIntersectionScale || firstHit) {
-      vec3 intersection = rayOrigin + normalizedRayDirection * intersectionScale;
+      float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
 
-      vec3 barycentricIntersection = getBarycentricCoordinates(intersection, vertex1.position, vertex2.position, vertex3.position);
+      if (intersectionScale < 0.001) {
+        continue;
+      }
 
-      float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
-      if (abs(barycentricSum - 1) <= 0.01) {
-        closestIntersectionScale = intersectionScale;
-        closestIntersection = vec3(0, float(faceIndex), 1);
-        firstHit = false;
+      if (intersectionScale < closestIntersectionScale || firstHit) {
+        vec3 intersection = rayOrigin + normalizedRayDirection * intersectionScale;
+
+        vec3 barycentricIntersection = getBarycentricCoordinates(intersection, vertex1.position, vertex2.position, vertex3.position);
+
+        float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
+        if (abs(barycentricSum - 1) <= 0.01) {
+          closestIntersectionScale = intersectionScale;
+          closestIntersection = vec3(0, float(faceIndex), 1);
+          firstHit = false;
+        }
       }
     }
   }
@@ -163,7 +168,6 @@ void main() {
 
       vec3 closestHitPoint = getClosestHit(cameraPosition, rayDirection);
 
-      ObjectDrawInfo objectDrawInfo = objectDrawInfos[0];
       imageStore(frameImage, ivec2(x, y), vec4(closestHitPoint, 1));
     }
   }

@@ -12,6 +12,7 @@ extension RaytracingVulkanRenderer {
     @Deferred var objectGeometryBuffer: ManagedGPUBuffer
     @Deferred var objectDrawInfoStagingBuffer: ManagedGPUBuffer
     @Deferred var objectDrawInfoBuffer: ManagedGPUBuffer
+    var meshVertexInfos = [Mesh: (firstIndex: Int, count: Int)]()
     var vertexCount: Int = 0
 
     var scene: Scene {
@@ -44,11 +45,18 @@ extension RaytracingVulkanRenderer {
     }
 
     func updateObjectGeometryData() throws {
-      vertexCount = 0
+      meshVertexInfos = [:]
 
       let commandBuffer = try renderer.beginSingleTimeCommands()
 
-      let vertices = scene.objects.flatMap { $0.mesh.flatVertices }
+      var vertices = [Vertex]()
+      for object in scene.objects {
+        if meshVertexInfos[object.mesh] == nil {
+          let flatVertices = object.mesh.flatVertices
+          meshVertexInfos[object.mesh] = (firstIndex: vertices.count, count: flatVertices.count)
+          vertices.append(contentsOf: flatVertices)
+        }
+      }
       vertexCount = vertices.count
       try objectGeometryStagingBuffer.store(vertices)
 
@@ -59,12 +67,15 @@ extension RaytracingVulkanRenderer {
 
     func updateObjectDrawInfoData() throws {
       var objectDrawInfos = [ObjectDrawInfo]()
-      objectDrawInfos.append(ObjectDrawInfo(
-        transformationMatrix: .identity.transposed,
-        firstVertexIndex: 1,
-        vertexCount: 12 * 3,
-        materialIndex: 0
-      ))
+      for object in scene.objects {
+        let meshVertexInfo = meshVertexInfos[object.mesh]!
+        objectDrawInfos.append(ObjectDrawInfo(
+          transformationMatrix: object.transformationMatrix,
+          firstVertexIndex: UInt32(meshVertexInfo.firstIndex),
+          vertexCount: UInt32(meshVertexInfo.count),
+          materialIndex: 0
+        ))
+      }
       
       try objectDrawInfoStagingBuffer.store(objectDrawInfos)
 
