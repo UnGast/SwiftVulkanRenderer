@@ -9,6 +9,7 @@ extension RaytracingVulkanRenderer {
     let mainMemoryManager: MemoryManager
     @Deferred var mainStagingBuffer: ManagedGPUBuffer
     @Deferred var objectGeometryBuffer: ManagedGPUBuffer
+    var vertexCount: Int = 0
 
     var scene: Scene {
       renderer.scene
@@ -28,18 +29,25 @@ extension RaytracingVulkanRenderer {
       
       objectGeometryBuffer = try mainMemoryManager.getBuffer(
         size: 1024 * 1024, usage: VkBufferUsageFlagBits(rawValue: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT.rawValue | VK_BUFFER_USAGE_TRANSFER_DST_BIT.rawValue))
-      
+
+      try updateObjectGeometryData()
+    }
+
+    func updateObjectGeometryData() throws {
+      vertexCount = 0
+
       let commandBuffer = try renderer.beginSingleTimeCommands()
 
       let testMaterial = Material(texture: Swim.Image(width: 1, height: 1, value: 1))
       let cube = Mesh.cuboid(material: testMaterial)
 
       var vertexData = [Float]()
-      for vertex in cube.flatVertices {
+      for vertex in scene.objects.flatMap { $0.mesh.flatVertices } {
         vertexData.append(contentsOf: vertex.position.elements)
         vertexData.append(contentsOf: [0])
         vertexData.append(contentsOf: vertex.normal.elements)
         vertexData.append(contentsOf: [0])
+        vertexCount += 1
       }
       try mainStagingBuffer.store(vertexData)
 
