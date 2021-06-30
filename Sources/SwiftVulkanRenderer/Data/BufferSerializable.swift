@@ -1,19 +1,27 @@
 import Foundation
 import GfxMath
 
-
-
 public protocol BufferSerializable {
     static var serializedBaseAlignment: Int { get }
     static var serializedSize: Int { get }
     static var serializedStride: Int { get }
 
     func serialize(into buffer: UnsafeMutableRawPointer, offset: Int)
+
+    var serializedData: Data { get }
 }
 
 extension BufferSerializable {
     public static var serializedStride: Int {
         toMultipleOf16(serializedSize)
+    }
+
+    public var serializedData: Data {
+        var data = Data(capacity: Self.serializedSize)
+        data.withUnsafeMutableBytes {
+            serialize(into: $0.baseAddress!, offset: 0)
+        }
+        return data
     }
 }
 
@@ -74,6 +82,18 @@ extension Matrix4: BufferSerializable {
 
     @inlinable public func serialize(into buffer: UnsafeMutableRawPointer, offset: Int) {
         buffer.advanced(by: offset).copyMemory(from: transposed.elements, byteCount: Self.serializedSize)
+    }
+}
+
+extension UInt32: BufferSerializable {
+    public static var serializedBaseAlignment: Int {
+        MemoryLayout<UInt32>.size
+    }
+
+    public static var serializedSize: Int { serializedBaseAlignment }
+
+    @inlinable public func serialize(into buffer: UnsafeMutableRawPointer, offset: Int) {
+        buffer.storeBytes(of: self, toByteOffset: offset, as: Self.self)
     }
 }
 
