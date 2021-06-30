@@ -16,6 +16,8 @@ layout(push_constant) uniform PushConstants{
   vec3 cameraPosition;
   vec3 cameraForwardDirection;
   vec3 cameraRightDirection;
+  uint unusedPlaceholder; // only used because for last value, packing is different? uint will be put directly after vec3 not like other vec3 which are stored like vec4
+  uint triangleCount;
 };
 layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
 layout(set = 1, binding = 0) buffer VertexBuffer{
@@ -77,8 +79,7 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
   bool firstHit = true;
   float closestIntersectionScale = 0;
   vec3 closestIntersection = vec3(0, 0, 0); // this value signifies no intersection
-  int faceCount = 12;
-  for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
+  for (int faceIndex = 0; faceIndex < triangleCount; faceIndex++) {
     int baseVertexIndex = faceIndex * 3;
 
     Vertex vertex1 = vertices[baseVertexIndex];

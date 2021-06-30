@@ -17,7 +17,7 @@ extension BufferSerializable {
     }
 
     public var serializedData: Data {
-        var data = Data(capacity: Self.serializedSize)
+        var data = Data(count: Self.serializedSize)
         data.withUnsafeMutableBytes {
             serialize(into: $0.baseAddress!, offset: 0)
         }
@@ -82,18 +82,6 @@ extension Matrix4: BufferSerializable {
 
     @inlinable public func serialize(into buffer: UnsafeMutableRawPointer, offset: Int) {
         buffer.advanced(by: offset).copyMemory(from: transposed.elements, byteCount: Self.serializedSize)
-    }
-}
-
-extension UInt32: BufferSerializable {
-    public static var serializedBaseAlignment: Int {
-        MemoryLayout<UInt32>.size
-    }
-
-    public static var serializedSize: Int { serializedBaseAlignment }
-
-    @inlinable public func serialize(into buffer: UnsafeMutableRawPointer, offset: Int) {
-        buffer.storeBytes(of: self, toByteOffset: offset, as: Self.self)
     }
 }
 

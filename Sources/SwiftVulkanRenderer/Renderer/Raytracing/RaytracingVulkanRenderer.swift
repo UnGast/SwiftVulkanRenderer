@@ -561,11 +561,12 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo)
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline)
-    
+
     let pushConstant = PushConstantBlock(
       cameraPosition: scene.camera.position,
       cameraForwardDirection: scene.camera.forward,
-      cameraRightDirection: scene.camera.right
+      cameraRightDirection: scene.camera.right,
+      triangleCount: 12
     )
     let pushConstantSize = PushConstantBlock.serializedSize
     let pushConstantData = pushConstant.serializedData
