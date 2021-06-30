@@ -92,7 +92,8 @@ public class SceneManager {
       ))
 
       currentVertexCount += flatVertices.count
-      vertexData.append(contentsOf: flatVertices.flatMap { $0.serializedData })
+      //vertexData.append(contentsOf: flatVertices.flatMap { $0.serializedData })
+      fatalError("reimplement vertex data transfer with buffer serializable")
     }
 
     let newTextureCount = materialSystem.textures.count

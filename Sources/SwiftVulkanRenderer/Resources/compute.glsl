@@ -12,6 +12,13 @@ struct Vertex{
   float t2;
 };
 
+struct ObjectDrawInfo{
+  mat4 transformationMatrix;
+  uint firstVertexIndex;
+  uint vertexCount;
+  uint materialIndex;
+};
+
 layout(push_constant) uniform PushConstants{
   vec3 cameraPosition;
   vec3 cameraForwardDirection;
@@ -22,6 +29,9 @@ layout(push_constant) uniform PushConstants{
 layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
 layout(set = 1, binding = 0) buffer VertexBuffer{
   Vertex vertices[];
+};
+layout(set = 1, binding = 1) buffer ObjectDrawInfoBuffer{
+  ObjectDrawInfo objectDrawInfos[];
 };
 /*
 struct Material {
@@ -82,9 +92,13 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
   for (int faceIndex = 0; faceIndex < triangleCount; faceIndex++) {
     int baseVertexIndex = faceIndex * 3;
 
+    ObjectDrawInfo objectDrawInfo = objectDrawInfos[0];
     Vertex vertex1 = vertices[baseVertexIndex];
     Vertex vertex2 = vertices[baseVertexIndex + 1];
     Vertex vertex3 = vertices[baseVertexIndex + 2];
+    //vertex1.position = (objectDrawInfo.transformationMatrix * vec4(vertex1.position, 1)).xyz;
+    //vertex2.position = (objectDrawInfo.transformationMatrix * vec4(vertex2.position, 1)).xyz;
+    //vertex3.position = (objectDrawInfo.transformationMatrix * vec4(vertex3.position, 1)).xyz;
 
     vec3 edge1 = vertex2.position - vertex1.position;
     vec3 edge2 = vertex3.position - vertex2.position;
@@ -149,6 +163,7 @@ void main() {
 
       vec3 closestHitPoint = getClosestHit(cameraPosition, rayDirection);
 
+      ObjectDrawInfo objectDrawInfo = objectDrawInfos[0];
       imageStore(frameImage, ivec2(x, y), vec4(closestHitPoint, 1));
     }
   }

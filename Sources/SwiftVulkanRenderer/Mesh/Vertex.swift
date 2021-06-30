@@ -2,7 +2,7 @@ import Foundation
 import GfxMath
 import Vulkan
 
-public struct Vertex {
+public struct Vertex: BufferSerializableStruct {
   public var position: FVec3
   public var normal: FVec3
   //public var color: Color
@@ -17,17 +17,17 @@ public struct Vertex {
     self.texCoord = texCoord*/
   }
 
-  public var serializedData: [Float] {
+  /*public var serializedData: [Float] {
     position.elements + normal.elements
   }
 
   public static var serializedSize: Int {
     MemoryLayout<Float>.size * 6
-  }
-
-  /*public static var serializationMeasureInstance: Vertex {
-    Self(position: .zero, texCoords: .zero)
   }*/
+
+  public static var serializationMeasureInstance: Self {
+    Self(position: .zero, normal: .zero)
+  }
 
   /*public func serializedData(aligned: Bool) -> Data {
     var alignment: Int = 1

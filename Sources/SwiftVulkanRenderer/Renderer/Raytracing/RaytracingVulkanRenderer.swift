@@ -410,6 +410,13 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorCount: 1,
         stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
         pImmutableSamplers: nil
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 1,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
+        pImmutableSamplers: nil
       )
     ]
 
@@ -443,8 +450,13 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     self.sceneDescriptorSet = sceneDescriptorSet!
 
-    var uniformObjectBufferInfo = VkDescriptorBufferInfo(
+    var objectGeometryBufferInfo = VkDescriptorBufferInfo(
       buffer: sceneManager.objectGeometryBuffer.buffer,
+      offset: 0,
+      range: VK_WHOLE_SIZE
+    )
+    var objectDrawInfoBufferInfo = VkDescriptorBufferInfo(
+      buffer: sceneManager.objectDrawInfoBuffer.buffer,
       offset: 0,
       range: VK_WHOLE_SIZE
     )
@@ -459,13 +471,24 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorCount: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
-        pBufferInfo: &uniformObjectBufferInfo,
+        pBufferInfo: &objectGeometryBufferInfo,
+        pTexelBufferView: nil
+      ),
+      VkWriteDescriptorSet(
+        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        pNext: nil,
+        dstSet: sceneDescriptorSet,
+        dstBinding: 1,
+        dstArrayElement: 0,
+        descriptorCount: 1,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        pImageInfo: nil,
+        pBufferInfo: &objectDrawInfoBufferInfo,
         pTexelBufferView: nil
       )
     ]
 
     vkUpdateDescriptorSets(device, UInt32(descriptorWrites.count), &descriptorWrites, 0, nil)
-
   }
 
   func createComputePipeline() throws {

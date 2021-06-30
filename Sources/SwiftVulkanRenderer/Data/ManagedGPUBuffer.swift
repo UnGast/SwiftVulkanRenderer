@@ -22,6 +22,8 @@ public class ManagedGPUBuffer {
         self.range = range
     }
 
+    /// **warning**: this might behave unexpected if swift structs are passed in, works best for C types since for these, memory alignment is known
+    /// to store Swift structs, make them conform to BufferSerializable (will then use other store implementation for this protocol)
     public func store<T>(_ data: [T], offset: Int = 0) throws {
         let dataSize = MemoryLayout<T>.size * data.count
 
@@ -37,6 +39,13 @@ public class ManagedGPUBuffer {
 
     public func store<S: BufferSerializable>(_ data: S, offset: Int = 0) throws {
         data.serialize(into: dataPointer.advanced(by: offset), offset: 0)
+    }
+
+    public func store<S: BufferSerializable>(_ data: [S], offset: Int = 0) throws {
+        let stride = S.serializedStride
+        for (index, element) in data.enumerated() {
+            element.serialize(into: dataPointer.advanced(by: offset + index * stride), offset: 0)
+        }
     }
 
     public func copy(from srcBuffer: ManagedGPUBuffer, srcRange: Range<Int>, dstOffset: Int, commandBuffer: VkCommandBuffer) {
