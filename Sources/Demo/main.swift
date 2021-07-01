@@ -8,20 +8,20 @@ let mainMaterial = Material(texture: Swim.Image(width: 10, height: 10, color: Sw
 let secondMaterial = Material(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
 
 let scene = Scene()
-scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: .identity))
-scene.objects.append(SceneObject(mesh: Mesh.icosahedron(material: mainMaterial), transformationMatrix: FMat4([
+scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, transformationMatrix: .identity))
+scene.objects.append(SceneObject(mesh: Mesh.icosahedron(), material: mainMaterial, transformationMatrix: FMat4([
 	1, 0, 0, -2,
 	0, 1, 0, 3,
 	0, 0, 1, 0,
 	0, 0, 0, 1
 ])))
-scene.objects.append(SceneObject(mesh: Mesh.sphere(subdivisionCount: 4, material: secondMaterial), transformationMatrix: FMat4([
+scene.objects.append(SceneObject(mesh: Mesh.sphere(subdivisionCount: 4), material: secondMaterial, transformationMatrix: FMat4([
 	1, 0, 0, -6,
 	0, 1, 0, 3,
 	0, 0, 1, 0,
 	0, 0, 0, 1
 ])))
-scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20, material: mainMaterial), transformationMatrix: FMat4([
+scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20), material: mainMaterial, transformationMatrix: FMat4([
 	1, 0, 0, -10,
 	0, 1, 0, 3,
 	0, 0, 1, 0,
@@ -38,7 +38,7 @@ DispatchQueue.global().async {
 	var nextX = Float(0)
 	while true {
 		DispatchQueue.main.async {
-			scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: FMat4([
+			scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, transformationMatrix: FMat4([
 				1, 0, 0, nextX,
 				0, 1, 0, 0,
 				0, 0, 1, 0,

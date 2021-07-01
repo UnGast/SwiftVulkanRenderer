@@ -2,7 +2,7 @@ import GfxMath
 
 extension Mesh {
 	/// - Parameter divisionCount: how many divisions to use to approximate a circle
-	public static func cylinder(divisionCount: Int, material: Material) -> Mesh {
+	public static func cylinder(divisionCount: Int) -> Mesh {
 		let radius = Float(1)
 		let height = Float(1)
 
@@ -85,7 +85,7 @@ extension Mesh {
 		indices = mergeIndices(indices: indices, additionalIndices: sideIndices, offset: UInt32(vertices.count))
 		vertices.append(contentsOf: sideVertices)
 
-		return Mesh(vertices: vertices, indices: indices, material: material)
+		return Mesh(vertices: vertices, indices: indices)
 	}
 }
 

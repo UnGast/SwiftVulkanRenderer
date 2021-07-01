@@ -4,8 +4,8 @@ extension Mesh {
 	/// creates a sphere by subdividing an icosahedron
 	/// - Parameter subdivisionCount: how many iterations of dividing each face into 4 separate faces (determines smoothness)
 	/// - Returns: sphere with diameter of 1
-	public static func sphere(subdivisionCount: Int, material: Material) -> Mesh {
-		let icosahedron = Mesh.icosahedron(material: material)
+	public static func sphere(subdivisionCount: Int) -> Mesh {
+		let icosahedron = Mesh.icosahedron()
 		
 		var vertices = icosahedron.vertices
 		var nFaces = 20
@@ -20,7 +20,7 @@ extension Mesh {
 			nFaces = nFaces * 4
 		}
 
-		return Mesh(vertices: vertices, indices: Array(0..<UInt32(vertices.count)), material: material)
+		return Mesh(vertices: vertices, indices: Array(0..<UInt32(vertices.count)))
 	}
 }
 

@@ -3,7 +3,7 @@ import Foundation
 import GfxMath
 
 extension Mesh {
-  public static func loadObj(fileUrl: URL, defaultMaterial: Material) throws -> Mesh {
+  public static func loadObj(fileUrl: URL) throws -> Mesh {
     var vertices = [Vertex]()
     var indices = [UInt32]()
 
@@ -76,6 +76,6 @@ extension Mesh {
       }
     }
 
-    return Mesh(vertices: vertices, indices: indices, material: defaultMaterial)
+    return Mesh(vertices: vertices, indices: indices)
   }
 }

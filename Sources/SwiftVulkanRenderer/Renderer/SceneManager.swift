@@ -80,7 +80,7 @@ public class SceneManager {
     var vertexData = [Float]()
     var currentVertexCount = 0
     for (index, object) in scene.objects.enumerated() {
-      try materialSystem.loadMaterial(object.mesh.material)
+      try materialSystem.loadMaterial(object.material)
 
       let flatVertices = object.mesh.flatVertices
 
@@ -122,7 +122,7 @@ public class SceneManager {
     for object in scene.objects {
       let drawInfo = SceneObjectDrawInfo(
         transformationMatrix: object.transformationMatrix,
-        materialIndex: UInt32(materialSystem.materialDrawInfoIndices[object.mesh.material]!))
+        materialIndex: UInt32(materialSystem.materialDrawInfoIndices[object.material]!))
 
       try objectStagingBuffer.store(drawInfo, offset: offset)
       offset += SceneObjectDrawInfo.serializedStride

@@ -3,7 +3,7 @@ import GfxMath
 
 extension Mesh {
 	/// - Returns: icosahedron with enclosing diameter of 0.5
-	public static func icosahedron(material: Material) -> Mesh {
+	public static func icosahedron() -> Mesh {
 		let phi: Float = (1 + sqrt(5)) / 2 
 		let a = Float(0.5)
 		let b = 1 / (2 * phi)
@@ -109,6 +109,6 @@ extension Mesh {
 			vertices[faceIndex * 3 + 2] = vertex3
 		}
 
-		return Mesh(vertices: vertices, indices: indices, material: material)
+		return Mesh(vertices: vertices, indices: indices)
 	}
 }

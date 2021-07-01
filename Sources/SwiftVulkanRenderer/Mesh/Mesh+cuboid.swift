@@ -1,7 +1,7 @@
 import GfxMath
 
 extension Mesh {
-  public static func cuboid(size: FVec3 = FVec3(1, 1, 1), material: Material) -> Mesh {
+  public static func cuboid(size: FVec3 = FVec3(1, 1, 1)) -> Mesh {
     let halfSize = size / 2
     return Mesh(vertices: [
       // front
@@ -52,6 +52,6 @@ extension Mesh {
 
       20, 21, 22,
       20, 22, 23
-    ], material: material)
+    ])
   }
 }
