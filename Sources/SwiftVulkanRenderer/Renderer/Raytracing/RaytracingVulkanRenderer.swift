@@ -27,6 +27,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   @Deferred var computePipelineLayout: VkPipelineLayout
   @Deferred public var commandPool: VkCommandPool
 
+  @Deferred var materialSystem: MaterialSystem
   @Deferred var sceneManager: SceneManager
   
   var nextDrawSubmitWaits: [(VkSemaphore, VkPipelineStageFlags)] = []
@@ -56,6 +57,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     try createTextureSampler()
 
     try createCommandPool()
+
+    materialSystem = try MaterialSystem(renderer: self)
 
     sceneManager = try SceneManager(renderer: self)
 
@@ -298,7 +301,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       ),
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        descriptorCount: 2
+        descriptorCount: 3
       ),
       VkDescriptorPoolSize(
         type: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -417,6 +420,13 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorCount: 1,
         stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
         pImmutableSamplers: nil
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 2,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
+        pImmutableSamplers: nil
       )
     ]
 
@@ -460,6 +470,11 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       offset: 0,
       range: VK_WHOLE_SIZE
     )
+    var materialDrawInfoBufferInfo = VkDescriptorBufferInfo(
+      buffer: materialSystem.materialDataBuffer.buffer,
+      offset: 0,
+      range: VK_WHOLE_SIZE
+    )
 
     var descriptorWrites: [VkWriteDescriptorSet] = [
       VkWriteDescriptorSet(
@@ -484,6 +499,18 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
         pBufferInfo: &objectDrawInfoBufferInfo,
+        pTexelBufferView: nil
+      ),
+      VkWriteDescriptorSet(
+        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        pNext: nil,
+        dstSet: sceneDescriptorSet,
+        dstBinding: 2,
+        dstArrayElement: 0,
+        descriptorCount: 1,
+        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        pImageInfo: nil,
+        pBufferInfo: &materialDrawInfoBufferInfo,
         pTexelBufferView: nil
       )
     ]

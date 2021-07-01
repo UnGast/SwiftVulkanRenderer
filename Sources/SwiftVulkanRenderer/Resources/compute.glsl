@@ -19,6 +19,11 @@ struct ObjectDrawInfo{
   uint materialIndex;
 };
 
+struct MaterialDrawInfo {
+  uint textureIndex;
+  float refractiveIndex;
+};
+
 layout(push_constant) uniform PushConstants{
   vec3 cameraPosition;
   vec3 cameraForwardDirection;
@@ -33,11 +38,10 @@ layout(set = 1, binding = 0) buffer VertexBuffer{
 layout(set = 1, binding = 1) buffer ObjectDrawInfoBuffer{
   ObjectDrawInfo objectDrawInfos[];
 };
-/*
-struct Material {
-  uint textureIndex;
+layout(set = 1, binding = 2) buffer MaterialDrawInfoBuffer{
+  MaterialDrawInfo materialDrawInfos[];
 };
-
+/*
 struct ObjectInfo {
     mat4 transformationMatrix;
     uint materialIndex;
@@ -92,6 +96,7 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
 
   for (int objectIndex = 0; objectIndex < objectCount; objectIndex++) {
     ObjectDrawInfo objectDrawInfo = objectDrawInfos[objectIndex];
+    MaterialDrawInfo materialDrawInfo = materialDrawInfos[objectDrawInfo.materialIndex];
     uint faceCount = objectDrawInfo.vertexCount / 3;
 
     for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {

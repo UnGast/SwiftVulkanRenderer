@@ -35,7 +35,7 @@ class MaterialSystem {
         let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
         self.textures.append(managedTextureImage)
 
-        let drawInfo = MaterialDrawInfo(textureIndex: UInt32(textures.count - 1))
+        let drawInfo = MaterialDrawInfo(textureIndex: UInt32(textures.count - 1), refractiveIndex: 1.0)
 
         materialDrawInfos.append(drawInfo)
         let index = materialDrawInfos.count - 1

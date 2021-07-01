@@ -68,12 +68,14 @@ extension RaytracingVulkanRenderer {
     func updateObjectDrawInfoData() throws {
       var objectDrawInfos = [ObjectDrawInfo]()
       for object in scene.objects {
+        let materialIndex = try renderer.materialSystem.loadMaterial(object.material)
+
         let meshVertexInfo = meshVertexInfos[object.mesh]!
         objectDrawInfos.append(ObjectDrawInfo(
           transformationMatrix: object.transformationMatrix,
           firstVertexIndex: UInt32(meshVertexInfo.firstIndex),
           vertexCount: UInt32(meshVertexInfo.count),
-          materialIndex: 0
+          materialIndex: UInt32(materialIndex)
         ))
       }
       
