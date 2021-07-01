@@ -87,6 +87,8 @@ extension RaytracingVulkanRenderer {
       try objectDrawInfoBuffer.copy(from: objectDrawInfoStagingBuffer, srcRange: 0..<(objectDrawInfos.count * ObjectDrawInfo.serializedSize), dstOffset: 0, commandBuffer: commandBuffer)
 
       try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
+
+      try renderer.materialSystem.updateGPUData()
     }
   }
 }

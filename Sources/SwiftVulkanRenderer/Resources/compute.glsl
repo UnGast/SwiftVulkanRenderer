@@ -24,6 +24,15 @@ struct MaterialDrawInfo {
   float refractiveIndex;
 };
 
+struct RaycastInfo {
+  vec3 rayOrigin;
+  vec3 rayDirection;
+  bool hit;
+  vec3 hitPosition;
+  uint hitObjectIndex;
+  vec3 hitAttenuation;
+};
+
 layout(push_constant) uniform PushConstants{
   vec3 cameraPosition;
   vec3 cameraForwardDirection;
@@ -87,10 +96,10 @@ vec3 getBarycentricCoordinates(vec3 point, vec3 vertex1Position, vec3 vertex2Pos
   return vec3(u, v, w);
 }
 
-vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
-  vec3 normalizedRayDirection = normalize(rayDirection);
+void raycast(inout RaycastInfo raycastInfo) {
+  vec3 normalizedRayDirection = normalize(raycastInfo.rayDirection);
 
-  bool firstHit = true;
+  bool hit = false;
   float closestIntersectionScale = 0;
   vec3 closestIntersection = vec3(0, 0, 0); // this value signifies no intersection
 
@@ -121,14 +130,14 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
         continue;
       }
 
-      float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
+      float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, raycastInfo.rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
 
       if (intersectionScale < 0.001) {
         continue;
       }
 
-      if (intersectionScale < closestIntersectionScale || firstHit) {
-        vec3 intersection = rayOrigin + normalizedRayDirection * intersectionScale;
+      if (intersectionScale < closestIntersectionScale || !hit) {
+        vec3 intersection = raycastInfo.rayOrigin + normalizedRayDirection * intersectionScale;
 
         vec3 barycentricIntersection = getBarycentricCoordinates(intersection, vertex1.position, vertex2.position, vertex3.position);
 
@@ -136,13 +145,13 @@ vec3 getClosestHit(vec3 rayOrigin, vec3 rayDirection) {
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
           closestIntersection = vec3(0, float(faceIndex), 1);
-          firstHit = false;
+          raycastInfo.hitAttenuation = vec3(float(materialDrawInfo.refractiveIndex), 0, 0);
+          raycastInfo.hit = true;
+          hit = true;
         }
       }
     }
   }
-
-  return closestIntersection; // signifies no intersection
 }
 
 void main() {
@@ -171,9 +180,16 @@ void main() {
 
       vec3 rayDirection = lookAtPoint - cameraPosition;
 
-      vec3 closestHitPoint = getClosestHit(cameraPosition, rayDirection);
+      RaycastInfo raycastInfo;
+      raycastInfo.rayOrigin = cameraPosition;
+      raycastInfo.rayDirection = rayDirection;
+      raycastInfo.hit = false;
 
-      imageStore(frameImage, ivec2(x, y), vec4(closestHitPoint, 1));
+      raycast(raycastInfo); 
+
+      if (raycastInfo.hit) {
+        imageStore(frameImage, ivec2(x, y), vec4(raycastInfo.hitAttenuation, 1));
+      }
     }
   }
 }
