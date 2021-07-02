@@ -16,8 +16,8 @@ scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, tr
 ])))
 
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: secondMaterial, transformationMatrix: FMat4([
-	1, 0, 0, 2,
-	0, 1, 0, -3,
+	1, 0, 0, -2,
+	0, 1, 0, 0,
 	0, 0, 1, 0,
 	0, 0, 0, 1
 ])))

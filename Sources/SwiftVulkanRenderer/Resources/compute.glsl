@@ -33,6 +33,7 @@ struct RaycastInfo {
   vec3 hitNormal;
   uint hitObjectIndex;
   vec3 hitAttenuation;
+  vec3 hitEmittance; 
 };
 
 layout(push_constant) uniform PushConstants{
@@ -155,7 +156,7 @@ void raycast(inout RaycastInfo raycastInfo) {
         float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
-          raycastInfo.hitAttenuation = vec3(float(materialDrawInfo.refractiveIndex), 0, 0);
+          raycastInfo.hitAttenuation = vec3(float(1), 0, 0);
           raycastInfo.hitPosition = intersection;
           raycastInfo.hitNormal = vertex1.normal * barycentricIntersection.x + vertex2.normal * barycentricIntersection.y + vertex3.normal * barycentricIntersection.z;
           raycastInfo.hitObjectIndex = objectIndex;
@@ -166,9 +167,9 @@ void raycast(inout RaycastInfo raycastInfo) {
     }
   }
 
-  if (!hit) {
+  /*if (!hit) {
     raycastInfo.hitAttenuation = vec3(1, 1, 1);
-  }
+  }*/
 
   /*if (raycastInfo.rayDepth < 10) {
     if (hit) {
@@ -216,13 +217,17 @@ void main() {
 
       int lastRayResultIndex = 0;
       
-      for (int rayDepth = 0; rayDepth < 1; rayDepth++) {
+      for (int rayDepth = 0; rayDepth < 2; rayDepth++) {
         RaycastInfo raycastInfo = makeEmptyRaycastInfo();
         raycastInfo.rayDepth = rayDepth;
         raycastInfo.rayOrigin = nextRayOrigin;
         raycastInfo.rayDirection = nextRayDirection;
 
         raycast(raycastInfo); 
+
+        if (!raycastInfo.hit) {
+          raycastInfo.hitEmittance = vec3(1, 1, 1);
+        }
 
         rayResults[rayDepth] = raycastInfo;
 
@@ -235,10 +240,13 @@ void main() {
         }
       }
 
-      vec3 resultColor = vec3(1, 1, 1);
+      vec3 resultColor = vec3(0, 0, 0);
 
       for (int rayResultIndex = lastRayResultIndex; rayResultIndex >= 0; rayResultIndex--) {
-        resultColor *= rayResults[rayResultIndex].hitAttenuation;
+        resultColor += rayResults[rayResultIndex].hitEmittance;
+        if (rayResults[rayResultIndex].hit) {
+          resultColor *= rayResults[rayResultIndex].hitAttenuation;
+        }
       }
 
       imageStore(frameImage, ivec2(x, y), vec4(resultColor, 1));

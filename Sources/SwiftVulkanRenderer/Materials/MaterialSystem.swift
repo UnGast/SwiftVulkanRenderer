@@ -46,7 +46,9 @@ class MaterialSystem {
     
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)
     public func updateGPUData() throws {
+        print("UPDATE GPU")
         try materialDataBuffer.store(materialDrawInfos)
+        print("FINISH UPDATE GU")
     }
 
     public func createTextureImage(image cpuImage: Swim.Image<RGBA, UInt8>) throws -> VkImage {

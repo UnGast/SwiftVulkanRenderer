@@ -42,6 +42,7 @@ public class ManagedGPUBuffer {
     }
 
     public func store<S: BufferSerializable>(_ data: [S], offset: Int = 0) throws {
+        print("SERIALIZE")
         let stride = S.serializedStride
         for (index, element) in data.enumerated() {
             element.serialize(into: dataPointer.advanced(by: offset + index * stride), offset: 0)
