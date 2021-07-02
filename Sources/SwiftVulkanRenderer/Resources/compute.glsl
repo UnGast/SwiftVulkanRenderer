@@ -27,8 +27,10 @@ struct MaterialDrawInfo {
 struct RaycastInfo {
   vec3 rayOrigin;
   vec3 rayDirection;
+  uint rayDepth;
   bool hit;
   vec3 hitPosition;
+  vec3 hitNormal;
   uint hitObjectIndex;
   vec3 hitAttenuation;
 };
@@ -96,12 +98,18 @@ vec3 getBarycentricCoordinates(vec3 point, vec3 vertex1Position, vec3 vertex2Pos
   return vec3(u, v, w);
 }
 
+RaycastInfo makeEmptyRaycastInfo() {
+  RaycastInfo raycastInfo;
+  raycastInfo.hitAttenuation = vec3(0, 0, 0);
+  raycastInfo.hit = false;
+  return raycastInfo;
+}
+
 void raycast(inout RaycastInfo raycastInfo) {
   vec3 normalizedRayDirection = normalize(raycastInfo.rayDirection);
 
   bool hit = false;
   float closestIntersectionScale = 0;
-  vec3 closestIntersection = vec3(0, 0, 0); // this value signifies no intersection
 
   for (int objectIndex = 0; objectIndex < objectCount; objectIndex++) {
     ObjectDrawInfo objectDrawInfo = objectDrawInfos[objectIndex];
@@ -117,6 +125,9 @@ void raycast(inout RaycastInfo raycastInfo) {
       vertex1.position = (objectDrawInfo.transformationMatrix * vec4(vertex1.position, 1)).xyz;
       vertex2.position = (objectDrawInfo.transformationMatrix * vec4(vertex2.position, 1)).xyz;
       vertex3.position = (objectDrawInfo.transformationMatrix * vec4(vertex3.position, 1)).xyz;
+      vertex1.normal = (objectDrawInfo.transformationMatrix * vec4(vertex1.normal, 0)).xyz;
+      vertex2.normal = (objectDrawInfo.transformationMatrix * vec4(vertex2.normal, 0)).xyz;
+      vertex3.normal = (objectDrawInfo.transformationMatrix * vec4(vertex3.normal, 0)).xyz;
 
       vec3 edge1 = vertex2.position - vertex1.position;
       vec3 edge2 = vertex3.position - vertex2.position;
@@ -144,14 +155,35 @@ void raycast(inout RaycastInfo raycastInfo) {
         float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
-          closestIntersection = vec3(0, float(faceIndex), 1);
           raycastInfo.hitAttenuation = vec3(float(materialDrawInfo.refractiveIndex), 0, 0);
+          raycastInfo.hitPosition = intersection;
+          raycastInfo.hitNormal = vertex1.normal * barycentricIntersection.x + vertex2.normal * barycentricIntersection.y + vertex3.normal * barycentricIntersection.z;
+          raycastInfo.hitObjectIndex = objectIndex;
           raycastInfo.hit = true;
           hit = true;
         }
       }
     }
   }
+
+  if (!hit) {
+    raycastInfo.hitAttenuation = vec3(1, 1, 1);
+  }
+
+  /*if (raycastInfo.rayDepth < 10) {
+    if (hit) {
+      RaycastInfo subRaycastInfo = makeEmptyRaycastInfo();
+      subRaycastInfo.rayDepth = raycastInfo.rayDepth + 1;
+      subRaycastInfo.rayOrigin = raycastInfo.hitPosition;
+      subRaycastInfo.rayDirection = raycastInfo.hitNormal;
+
+      raycast(subRaycastInfo);
+
+      raycastInfo.hitAttenuation = raycastInfo.hitAttenuation * subRaycastInfo.hitAttenuation;
+    } else {
+      raycastInfo.hitAttenuation = vec3(1, 1, 1);
+    }
+  }*/
 }
 
 void main() {
@@ -169,6 +201,7 @@ void main() {
   vec3 surfaceUp = normalize(cross(surfaceRight, normalizedCameraForwardDirection));
   vec2 surfaceSize = vec2(1, float(frameImageSize.y) / float(frameImageSize.x));
 
+  RaycastInfo rayResults[10];
   for (uint x = startX; x < endX; x += 1) {
     for (uint y = startY; y < endY; y += 1) {
       imageStore(frameImage, ivec2(x, y), vec4(0.2, 0.4, 1, 1));
@@ -178,18 +211,37 @@ void main() {
       vec2 centeredPositionOnSurface = positionOnSurface - surfaceSize / 2;
       vec3 lookAtPoint = surfaceOrigin + centeredPositionOnSurface.x * surfaceRight + centeredPositionOnSurface.y * surfaceUp;
 
-      vec3 rayDirection = lookAtPoint - cameraPosition;
+      vec3 nextRayOrigin = cameraPosition;
+      vec3 nextRayDirection = normalize(lookAtPoint - cameraPosition);
 
-      RaycastInfo raycastInfo;
-      raycastInfo.rayOrigin = cameraPosition;
-      raycastInfo.rayDirection = rayDirection;
-      raycastInfo.hit = false;
+      uint lastRayResultIndex = 0;
+      
+      for (uint rayDepth = 0; rayDepth < 1; rayDepth++) {
+        RaycastInfo raycastInfo = makeEmptyRaycastInfo();
+        raycastInfo.rayDepth = rayDepth;
+        raycastInfo.rayOrigin = nextRayOrigin;
+        raycastInfo.rayDirection = nextRayDirection;
 
-      raycast(raycastInfo); 
+        raycast(raycastInfo); 
 
-      if (raycastInfo.hit) {
-        imageStore(frameImage, ivec2(x, y), vec4(raycastInfo.hitAttenuation, 1));
+        rayResults[rayDepth] = raycastInfo;
+
+        lastRayResultIndex = rayDepth;
+
+        if (raycastInfo.hit) {
+        
+        } else {
+          break;
+        }
       }
+
+      vec3 resultColor = vec3(1, 1, 1);
+
+      for (uint rayResultIndex = lastRayResultIndex; rayResultIndex > 0; rayResultIndex--) {
+        resultColor *= rayResults[rayResultIndex].hitAttenuation;
+      }
+
+      imageStore(frameImage, ivec2(x, y), vec4(resultColor, 1));
     }
   }
 }
