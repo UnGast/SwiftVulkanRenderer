@@ -27,7 +27,7 @@ struct MaterialDrawInfo {
 struct RaycastInfo {
   vec3 rayOrigin;
   vec3 rayDirection;
-  uint rayDepth;
+  int rayDepth;
   bool hit;
   vec3 hitPosition;
   vec3 hitNormal;
@@ -214,9 +214,9 @@ void main() {
       vec3 nextRayOrigin = cameraPosition;
       vec3 nextRayDirection = normalize(lookAtPoint - cameraPosition);
 
-      uint lastRayResultIndex = 0;
+      int lastRayResultIndex = 0;
       
-      for (uint rayDepth = 0; rayDepth < 1; rayDepth++) {
+      for (int rayDepth = 0; rayDepth < 1; rayDepth++) {
         RaycastInfo raycastInfo = makeEmptyRaycastInfo();
         raycastInfo.rayDepth = rayDepth;
         raycastInfo.rayOrigin = nextRayOrigin;
@@ -237,7 +237,7 @@ void main() {
 
       vec3 resultColor = vec3(1, 1, 1);
 
-      for (uint rayResultIndex = lastRayResultIndex; rayResultIndex > 0; rayResultIndex--) {
+      for (int rayResultIndex = lastRayResultIndex; rayResultIndex >= 0; rayResultIndex--) {
         resultColor *= rayResults[rayResultIndex].hitAttenuation;
       }
 
