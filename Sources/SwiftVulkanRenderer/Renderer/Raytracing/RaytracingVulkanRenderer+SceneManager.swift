@@ -69,6 +69,7 @@ extension RaytracingVulkanRenderer {
       var objectDrawInfos = [ObjectDrawInfo]()
       for object in scene.objects {
         let materialIndex = try renderer.materialSystem.loadMaterial(object.material)
+        print("OBJECT MATERIAL INDEX", materialIndex)
 
         let meshVertexInfo = meshVertexInfos[object.mesh]!
         objectDrawInfos.append(ObjectDrawInfo(

@@ -19,7 +19,7 @@ struct ObjectDrawInfo{
   uint materialIndex;
 };
 
-struct MaterialDrawInfo {
+struct MaterialDrawInfo{
   uint textureIndex;
   float refractiveIndex;
 };
@@ -27,7 +27,7 @@ struct MaterialDrawInfo {
 struct RaycastInfo {
   vec3 rayOrigin;
   vec3 rayDirection;
-  int rayDepth;
+  uint rayDepth;
   bool hit;
   vec3 hitPosition;
   vec3 hitNormal;
@@ -53,34 +53,6 @@ layout(set = 1, binding = 1) buffer ObjectDrawInfoBuffer{
 layout(set = 1, binding = 2) buffer MaterialDrawInfoBuffer{
   MaterialDrawInfo materialDrawInfos[];
 };
-/*
-struct ObjectInfo {
-    mat4 transformationMatrix;
-    uint materialIndex;
-};
-
-layout(location=0) in vec3 fragNormal;
-layout(location=1) in flat uint instanceIndex;
-
-layout(set = 0, binding = 0) uniform SceneParams {
-  mat4 viewMatrix;
-  mat4 projectionMatrix;
-  vec3 ambientLightColor;
-  float ambientLightIntensity;
-  vec3 directionalLightDirection;
-  vec3 directionalLightColor;
-  float directionalLightIntensity;
-};
-layout(binding = 1) readonly buffer ObjectInfoBuffer{
-    ObjectInfo objectInfos[];
-};
-layout(set = 0, binding = 2) uniform texture2D textures[];
-layout(set = 0, binding = 3) uniform sampler texSampler;
-layout(set = 0, binding = 4) readonly buffer MaterialBuffer{
-  Material materials[];
-};
-
-layout(location=0) out vec4 outColor;*/
 
 float getAreaOfTriangle(vec3 vertex1Position, vec3 vertex2Position, vec3 vertex3Position) {
   vec3 edge1 = vertex2Position - vertex1Position;
@@ -101,7 +73,8 @@ vec3 getBarycentricCoordinates(vec3 point, vec3 vertex1Position, vec3 vertex2Pos
 
 RaycastInfo makeEmptyRaycastInfo() {
   RaycastInfo raycastInfo;
-  raycastInfo.hitAttenuation = vec3(0, 0, 0);
+  raycastInfo.hitAttenuation = vec3(1, 1, 1);
+  raycastInfo.hitEmittance = vec3(0, 0, 0);
   raycastInfo.hit = false;
   return raycastInfo;
 }
@@ -114,7 +87,7 @@ void raycast(inout RaycastInfo raycastInfo) {
 
   for (int objectIndex = 0; objectIndex < objectCount; objectIndex++) {
     ObjectDrawInfo objectDrawInfo = objectDrawInfos[objectIndex];
-    MaterialDrawInfo materialDrawInfo = materialDrawInfos[objectDrawInfo.materialIndex];
+    //MaterialDrawInfo materialDrawInfo = materialDrawInfos[objectDrawInfo.materialIndex];
     uint faceCount = objectDrawInfo.vertexCount / 3;
 
     for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
@@ -202,7 +175,6 @@ void main() {
   vec3 surfaceUp = normalize(cross(surfaceRight, normalizedCameraForwardDirection));
   vec2 surfaceSize = vec2(1, float(frameImageSize.y) / float(frameImageSize.x));
 
-  RaycastInfo rayResults[10];
   for (uint x = startX; x < endX; x += 1) {
     for (uint y = startY; y < endY; y += 1) {
       imageStore(frameImage, ivec2(x, y), vec4(0.2, 0.4, 1, 1));
@@ -215,9 +187,10 @@ void main() {
       vec3 nextRayOrigin = cameraPosition;
       vec3 nextRayDirection = normalize(lookAtPoint - cameraPosition);
 
+      RaycastInfo rayResults[4];
       int lastRayResultIndex = 0;
       
-      for (int rayDepth = 0; rayDepth < 2; rayDepth++) {
+      for (int rayDepth = 0; rayDepth < 4; rayDepth++) {
         RaycastInfo raycastInfo = makeEmptyRaycastInfo();
         raycastInfo.rayDepth = rayDepth;
         raycastInfo.rayOrigin = nextRayOrigin;
@@ -234,7 +207,10 @@ void main() {
         lastRayResultIndex = rayDepth;
 
         if (raycastInfo.hit) {
-        
+          nextRayOrigin = raycastInfo.hitPosition;
+          vec3 normNormal = normalize(raycastInfo.hitNormal);
+          float nextDirectionOffset = 2 * dot(raycastInfo.rayDirection, normNormal);
+          nextRayDirection = raycastInfo.rayDirection + normNormal * nextDirectionOffset;
         } else {
           break;
         }
@@ -244,9 +220,7 @@ void main() {
 
       for (int rayResultIndex = lastRayResultIndex; rayResultIndex >= 0; rayResultIndex--) {
         resultColor += rayResults[rayResultIndex].hitEmittance;
-        if (rayResults[rayResultIndex].hit) {
-          resultColor *= rayResults[rayResultIndex].hitAttenuation;
-        }
+        resultColor *= rayResults[rayResultIndex].hitAttenuation;
       }
 
       imageStore(frameImage, ivec2(x, y), vec4(resultColor, 1));
