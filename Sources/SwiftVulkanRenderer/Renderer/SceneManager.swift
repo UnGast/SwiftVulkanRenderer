@@ -122,7 +122,7 @@ public class SceneManager {
     for object in scene.objects {
       let drawInfo = SceneObjectDrawInfo(
         transformationMatrix: object.transformationMatrix,
-        materialIndex: UInt32(materialSystem.materialDrawInfoIndices[object.material]!))
+        materialIndex: UInt32(materialSystem.materialDrawInfoIndices[ObjectIdentifier(object.material)]!))
 
       try objectStagingBuffer.store(drawInfo, offset: offset)
       offset += SceneObjectDrawInfo.serializedStride

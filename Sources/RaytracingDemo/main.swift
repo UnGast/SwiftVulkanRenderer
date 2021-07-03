@@ -4,9 +4,9 @@ import GfxMath
 import Swim
 import SwiftVulkanRenderer
 
-let mainMaterial = Material(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 120, g: 50, b: 240, a: 255)))
-let secondMaterial = Material(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
-let thirdMaterial = Material(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
+let mainMaterial = Lambertian(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 120, g: 50, b: 240, a: 255)))
+let secondMaterial = Lambertian(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
+let thirdMaterial = Lambertian(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
 
 let scene = Scene()
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, transformationMatrix: FMat4([

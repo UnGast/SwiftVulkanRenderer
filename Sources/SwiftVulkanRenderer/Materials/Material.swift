@@ -1,17 +1,21 @@
 import Swim
 
-public class Material: Hashable {
+public protocol Material: class {}
+
+extension Material {}
+
+public class Lambertian: Material {
     public var texture: Swim.Image<RGBA, UInt8>
 
     public init(texture: Swim.Image<RGBA, UInt8>) {
         self.texture = texture
     }
+}
 
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(ObjectIdentifier(self))
-    }
+public class Dielectric: Material {
+    public var refractiveIndex: Float
 
-    public static func == (lhs: Material, rhs: Material) -> Bool {
-        lhs === rhs
+    public init(refractiveIndex: Float) {
+        self.refractiveIndex = refractiveIndex
     }
 }

@@ -5,7 +5,7 @@ import Vulkan
 class MaterialSystem {
     private let renderer: VulkanRenderer
 
-    var materialDrawInfoIndices: [Material: Int] = [:]
+    var materialDrawInfoIndices: [ObjectIdentifier: Int] = [:]
     var materialDrawInfos: [MaterialDrawInfo] = []
 
     private(set) var textures: [ManagedGPUImage] = []
@@ -25,25 +25,25 @@ class MaterialSystem {
     /// 
     /// - Returns the index of the material info in the buffer available in shaders
     @discardableResult public func loadMaterial(_ material: Material) throws -> Int {
-        if let index = materialDrawInfoIndices[material] {
+        if let index = materialDrawInfoIndices[ObjectIdentifier(material)] {
             return index
         }
 
-        let textureImage = try self.createTextureImage(image: material.texture)
-        let textureView = createImageView(image: textureImage, format: VK_FORMAT_R8G8B8A8_SRGB)
+        //let textureImage = try self.createTextureImage(image: material.texture)
+        //let textureView = createImageView(image: textureImage, format: VK_FORMAT_R8G8B8A8_SRGB)
 
-        let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
-        self.textures.append(managedTextureImage)
+        //let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
+        //self.textures.append(managedTextureImage)
 
-        let drawInfo = MaterialDrawInfo(textureIndex: UInt32(textures.count - 1), refractiveIndex: 0.7)
+        let drawInfo = MaterialDrawInfo(type: 0, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: 0.7)
 
         materialDrawInfos.append(drawInfo)
         let index = materialDrawInfos.count - 1
-        materialDrawInfoIndices[material] = index
+        materialDrawInfoIndices[ObjectIdentifier(material)] = index
 
         return index
     }
-    
+
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)
     public func updateGPUData() throws {
         print("UPDATE GPU")

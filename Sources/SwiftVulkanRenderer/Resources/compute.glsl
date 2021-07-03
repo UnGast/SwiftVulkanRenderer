@@ -19,7 +19,11 @@ struct ObjectDrawInfo{
   uint materialIndex;
 };
 
+const uint MaterialTypeDielectric = 0;
+const uint MaterialTypeLambertian = 1;
+
 struct MaterialDrawInfo{
+  uint type;
   uint textureIndex;
   float refractiveIndex;
 };
