@@ -1,8 +1,7 @@
 import Swim
 
-public protocol Material: class {}
-
-extension Material {}
+public protocol Material: class {
+}
 
 public class Lambertian: Material {
     public var texture: Swim.Image<RGBA, UInt8>

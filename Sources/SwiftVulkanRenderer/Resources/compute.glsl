@@ -137,7 +137,6 @@ void raycast(inout RaycastInfo raycastInfo) {
           raycastInfo.hitAttenuation = vec3(0.5, 0.5, 0.5);
           raycastInfo.hitPosition = intersection;
           raycastInfo.hitNormal = vertex1.normal * barycentricIntersection.x + vertex2.normal * barycentricIntersection.y + vertex3.normal * barycentricIntersection.z;
-          raycastInfo.hitAttenuation = vec3(float(objectDrawInfo.materialIndex), 0.5, 0.5);
           raycastInfo.hitObjectIndex = objectIndex;
           raycastInfo.hit = true;
           hit = true;
@@ -168,6 +167,37 @@ void raycast(inout RaycastInfo raycastInfo) {
 
 float rand(vec2 co){
   return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+/*
+vec3 refract(vec3 incoming, vec3 normal, float refractionRatio) {
+  float cosTheta = min(dot(-normalize(incoming), normal.normalized()), 1);
+  vec3 outgoingPerpendicular = refractionRatio * (incoming + cosTheta * normal);
+  vec3 outgoingParallel = -sqrt(abs(1 - dot(outgoingPerpendicular, outgoingPerpendicular))) * normal;
+  return outgoingPerpendicular + outgoingParallel
+}*/
+
+void setNextRayParameters(RaycastInfo incidentRayInfo, vec3 incidentRandomSeed, inout vec3 nextRayOrigin, inout vec3 nextRayDirection) {
+  MaterialDrawInfo incidentMaterial = materialDrawInfos[objectDrawInfos[incidentRayInfo.hitObjectIndex].materialIndex];
+
+  if (incidentMaterial.type == MaterialTypeLambertian) {
+    vec3 normNormal = normalize(incidentRayInfo.hitNormal);
+    float nextDirectionOffset = 2 * dot(incidentRayInfo.rayDirection, normNormal);
+    vec2 randomSeed = vec2(incidentRandomSeed.x, incidentRandomSeed.y + incidentRandomSeed.z);
+    nextRayDirection = normalize(vec3(rand(randomSeed), rand(randomSeed), rand(randomSeed)));
+    // FOR MIRROR REFLECTION: nextRayDirection = incidentRayInfo.rayDirection + normNormal * nextDirectionOffset;
+    nextRayOrigin = incidentRayInfo.hitPosition;
+  } else if (incidentMaterial.type == MaterialTypeDielectric) {
+    vec3 normNormal = normalize(incidentRayInfo.hitNormal);
+    float rayDotNormal = dot(incidentRayInfo.rayDirection, normNormal);
+    // ray hit outside ? yes : no
+    float refractionRatio = rayDotNormal < 0 ? 1/incidentMaterial.refractiveIndex : incidentMaterial.refractiveIndex;
+
+    nextRayDirection = refract(normalize(incidentRayInfo.rayDirection), normNormal, refractionRatio);
+    nextRayOrigin = incidentRayInfo.hitPosition + nextRayDirection * 0.001;
+  } else {
+    nextRayOrigin = incidentRayInfo.rayOrigin;
+    nextRayDirection = incidentRayInfo.rayDirection;
+  }
 }
 
 void execute() {
@@ -224,12 +254,7 @@ void execute() {
           lastRayResultIndex = rayDepth;
 
           if (raycastInfo.hit) {
-            vec3 normNormal = normalize(raycastInfo.hitNormal);
-            float nextDirectionOffset = 2 * dot(raycastInfo.rayDirection, normNormal);
-            vec2 randomSeed = vec2(float(x), float(y) + float(iterationIndex));
-            nextRayDirection = normalize(vec3(rand(randomSeed), rand(randomSeed), rand(randomSeed)));
-            // FOR MIRROR REFLECTION: nextRayDirection = raycastInfo.rayDirection + normNormal * nextDirectionOffset;
-            nextRayOrigin = raycastInfo.hitPosition;
+            setNextRayParameters(raycastInfo, vec3(float(x), float(y), float(iterationIndex)), nextRayOrigin, nextRayDirection);
           } else {
             break;
           }

@@ -35,7 +35,15 @@ class MaterialSystem {
         //let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
         //self.textures.append(managedTextureImage)
 
-        let drawInfo = MaterialDrawInfo(type: 0, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: 0.7)
+        let drawInfo: MaterialDrawInfo
+        switch material {
+        case let material as Dielectric:
+            drawInfo = MaterialDrawInfo(type: 0, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: material.refractiveIndex)
+        case let material as Lambertian:
+            drawInfo = MaterialDrawInfo(type: 1, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: 1)
+        default:
+            fatalError("unsupported material type")
+        }
 
         materialDrawInfos.append(drawInfo)
         let index = materialDrawInfos.count - 1
@@ -47,7 +55,7 @@ class MaterialSystem {
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)
     public func updateGPUData() throws {
         print("UPDATE GPU")
-        try materialDataBuffer.store(materialDrawInfos)
+        try materialDataBuffer.store(materialDrawInfos, strideMultiple16: false)
         print("FINISH UPDATE GU")
     }
 
