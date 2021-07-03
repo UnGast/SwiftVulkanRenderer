@@ -16,9 +16,9 @@ scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, tr
 ])))
 
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: secondMaterial, transformationMatrix: FMat4([
-	3, 0, 0, -2,
+	30, 0, 0, -2,
 	0, 1, 0, 0,
-	0, 0, 3, 0,
+	0, 0, 30, 0,
 	0, 0, 0, 1
 ])))
 /*
@@ -43,7 +43,7 @@ scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20, material
 	0, 0, 0, 1
 ])))*/
 
-scene.camera.position = FVec3(0, 0, -3)
+scene.camera.position = FVec3(0, 3, -3)
 
 let application = VulkanRendererApplication(createRenderer: {
 	try RaytracingVulkanRenderer(scene: scene, instance: $0, surface: $1)
