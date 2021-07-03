@@ -115,14 +115,11 @@ void raycast(inout RaycastInfo raycastInfo) {
       vec3 faceOrigin = vertex1.position;
       vec3 computedFaceNormal = normalize(cross(edge1, edge2));
 
-      float faceNormalRayDot = dot(computedFaceNormal, normalizedRayDirection);
-      if (faceNormalRayDot == 0) {
-        continue;
-      }
+      //float faceNormalRayDot = dot(computedFaceNormal, normalizedRayDirection);
 
       float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, raycastInfo.rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
 
-      if (intersectionScale < 0.01) {
+      if (intersectionScale < 0.001) {
         continue;
       }
 
@@ -134,7 +131,11 @@ void raycast(inout RaycastInfo raycastInfo) {
         float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
-          raycastInfo.hitAttenuation = vec3(0.5, 0.5, 0.5);
+          if (materialDrawInfo.type != MaterialTypeDielectric) {
+            raycastInfo.hitAttenuation = vec3(0.5, 0.5, 0.5);
+          } else {
+            raycastInfo.hitAttenuation = vec3(1, 1, 1);
+          }
           raycastInfo.hitPosition = intersection;
           raycastInfo.hitNormal = vertex1.normal * barycentricIntersection.x + vertex2.normal * barycentricIntersection.y + vertex3.normal * barycentricIntersection.z;
           raycastInfo.hitObjectIndex = objectIndex;
@@ -188,12 +189,32 @@ void setNextRayParameters(RaycastInfo incidentRayInfo, vec3 incidentRandomSeed, 
     nextRayOrigin = incidentRayInfo.hitPosition;
   } else if (incidentMaterial.type == MaterialTypeDielectric) {
     vec3 normNormal = normalize(incidentRayInfo.hitNormal);
+    vec3 normDirection = normalize(incidentRayInfo.rayDirection);
     float rayDotNormal = dot(incidentRayInfo.rayDirection, normNormal);
-    // ray hit outside ? yes : no
-    float refractionRatio = rayDotNormal < 0 ? 1/incidentMaterial.refractiveIndex : incidentMaterial.refractiveIndex;
 
-    nextRayDirection = refract(normalize(incidentRayInfo.rayDirection), normNormal, refractionRatio);
-    nextRayOrigin = incidentRayInfo.hitPosition + nextRayDirection * 0.001;
+    float refractionRatio = 1;
+
+    if (rayDotNormal > 0) {
+      // ray hit inside
+      normNormal = -normNormal;
+      refractionRatio = incidentMaterial.refractiveIndex;
+    } else {
+      // ray hit outside
+      refractionRatio = 1/incidentMaterial.refractiveIndex;
+    }
+
+    float cosTheta = min(dot(-normDirection, normNormal), 1);
+    float sinTheta = sqrt(1 - cosTheta * cosTheta);
+
+    bool totalInternalReflection = refractionRatio * sinTheta > 1;
+
+    if (totalInternalReflection) {
+      nextRayDirection = reflect(normDirection, normNormal);
+      nextRayOrigin = incidentRayInfo.hitPosition + nextRayDirection * 0.001;
+    } else {
+      nextRayDirection = refract(normalize(incidentRayInfo.rayDirection), normNormal, refractionRatio);
+      nextRayOrigin = incidentRayInfo.hitPosition + nextRayDirection * 0.001;
+    }
   } else {
     nextRayOrigin = incidentRayInfo.rayOrigin;
     nextRayDirection = incidentRayInfo.rayDirection;
@@ -234,10 +255,10 @@ void execute() {
         vec3 nextRayOrigin = cameraPosition;
         vec3 nextRayDirection = normalize(lookAtPoint - cameraPosition);
 
-        RaycastInfo rayResults[4];
+        RaycastInfo rayResults[10];
         int lastRayResultIndex = 0;
         
-        for (int rayDepth = 0; rayDepth < 4; rayDepth++) {
+        for (int rayDepth = 0; rayDepth < 10; rayDepth++) {
           RaycastInfo raycastInfo = makeEmptyRaycastInfo();
           raycastInfo.rayDepth = rayDepth;
           raycastInfo.rayOrigin = nextRayOrigin;
