@@ -176,7 +176,7 @@ void execute() {
   uint endY = min(frameImageSize.y, uint(ceil(float(startY) + yRangeStep)));
 
   vec3 normalizedCameraForwardDirection = normalize(cameraForwardDirection);
-  vec3 surfaceOrigin = cameraPosition + normalizedCameraForwardDirection * 0.1;
+  vec3 surfaceOrigin = cameraPosition + normalizedCameraForwardDirection * 1;
   vec3 surfaceRight = normalize(cameraRightDirection);
   vec3 surfaceUp = normalize(cross(surfaceRight, normalizedCameraForwardDirection));
   vec2 surfaceSize = vec2(1, float(frameImageSize.y) / float(frameImageSize.x));
