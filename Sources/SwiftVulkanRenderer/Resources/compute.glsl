@@ -2,8 +2,8 @@
 #extension GL_ARB_separate_shader_objects:enable
 #extension GL_EXT_nonuniform_qualifier:enable
 
-layout (local_size_x = 24) in;
-layout (local_size_y = 24) in;
+layout (local_size_x = 8) in;
+layout (local_size_y = 8) in;
 
 struct Vertex{
   vec3 position;
@@ -166,12 +166,14 @@ float rand(vec2 co){
 
 void execute() {
   uvec2 frameImageSize = imageSize(frameImage);
-  uint xRangeStep = frameImageSize.x / gl_WorkGroupSize.x;
-  uint yRangeStep = frameImageSize.y / gl_WorkGroupSize.y;
-  uint startX = xRangeStep * gl_LocalInvocationID.x;
-  uint endX = min(frameImageSize.x, startX + xRangeStep);
-  uint startY = yRangeStep * gl_LocalInvocationID.y;
-  uint endY = min(frameImageSize.y, startY + yRangeStep);
+  uint divisionsX = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
+  uint divisionsY = gl_WorkGroupSize.y * gl_NumWorkGroups.y;
+  uint xRangeStep = uint(ceil(float(frameImageSize.x) / float(divisionsX)));
+  uint yRangeStep = uint(ceil(float(frameImageSize.y) / float(divisionsY)));
+  uint startX = uint(xRangeStep * gl_GlobalInvocationID.x);
+  uint endX = min(frameImageSize.x, uint(ceil(float(startX) + xRangeStep)));
+  uint startY = uint(yRangeStep * gl_GlobalInvocationID.y);
+  uint endY = min(frameImageSize.y, uint(ceil(float(startY) + yRangeStep)));
 
   vec3 normalizedCameraForwardDirection = normalize(cameraForwardDirection);
   vec3 surfaceOrigin = cameraPosition + normalizedCameraForwardDirection * 0.1;

@@ -626,7 +626,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex]), Optional(sceneDescriptorSet)]
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, UInt32(descriptorSets.count), descriptorSets, 0, nil)
-    vkCmdDispatch(commandBuffer, 1, 1, 1)
+    vkCmdDispatch(commandBuffer, 64, 64, 1)
 
     vkEndCommandBuffer(commandBuffer)
 
