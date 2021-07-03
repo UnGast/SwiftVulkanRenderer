@@ -87,7 +87,7 @@ void raycast(inout RaycastInfo raycastInfo) {
 
   for (int objectIndex = 0; objectIndex < objectCount; objectIndex++) {
     ObjectDrawInfo objectDrawInfo = objectDrawInfos[objectIndex];
-    //MaterialDrawInfo materialDrawInfo = materialDrawInfos[objectDrawInfo.materialIndex];
+    MaterialDrawInfo materialDrawInfo = materialDrawInfos[objectDrawInfo.materialIndex];
     uint faceCount = objectDrawInfo.vertexCount / 3;
 
     for (int faceIndex = 0; faceIndex < faceCount; faceIndex++) {
@@ -99,9 +99,9 @@ void raycast(inout RaycastInfo raycastInfo) {
       vertex1.position = (objectDrawInfo.transformationMatrix * vec4(vertex1.position, 1)).xyz;
       vertex2.position = (objectDrawInfo.transformationMatrix * vec4(vertex2.position, 1)).xyz;
       vertex3.position = (objectDrawInfo.transformationMatrix * vec4(vertex3.position, 1)).xyz;
-      vertex1.normal = (objectDrawInfo.transformationMatrix * vec4(vertex1.normal, 0)).xyz;
+      /*vertex1.normal = (objectDrawInfo.transformationMatrix * vec4(vertex1.normal, 0)).xyz;
       vertex2.normal = (objectDrawInfo.transformationMatrix * vec4(vertex2.normal, 0)).xyz;
-      vertex3.normal = (objectDrawInfo.transformationMatrix * vec4(vertex3.normal, 0)).xyz;
+      vertex3.normal = (objectDrawInfo.transformationMatrix * vec4(vertex3.normal, 0)).xyz;*/
 
       vec3 edge1 = vertex2.position - vertex1.position;
       vec3 edge2 = vertex3.position - vertex2.position;
@@ -117,7 +117,7 @@ void raycast(inout RaycastInfo raycastInfo) {
 
       float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, raycastInfo.rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
 
-      if (intersectionScale < 0.001) {
+      if (intersectionScale < 0.01) {
         continue;
       }
 
@@ -129,7 +129,7 @@ void raycast(inout RaycastInfo raycastInfo) {
         float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
-          raycastInfo.hitAttenuation = vec3(float(1), 0, 0);
+          raycastInfo.hitAttenuation = vec3(0.5, 0.5, 0.5);//float(objectIndex), float(objectIndex), float(objectIndex));
           raycastInfo.hitPosition = intersection;
           raycastInfo.hitNormal = vertex1.normal * barycentricIntersection.x + vertex2.normal * barycentricIntersection.y + vertex3.normal * barycentricIntersection.z;
           raycastInfo.hitObjectIndex = objectIndex;
@@ -160,7 +160,11 @@ void raycast(inout RaycastInfo raycastInfo) {
   }*/
 }
 
-void main() {
+float rand(vec2 co){
+  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void execute() {
   uvec2 frameImageSize = imageSize(frameImage);
   uint xRangeStep = frameImageSize.x / gl_WorkGroupSize.x;
   uint yRangeStep = frameImageSize.y / gl_WorkGroupSize.y;
@@ -179,51 +183,66 @@ void main() {
     for (uint y = startY; y < endY; y += 1) {
       imageStore(frameImage, ivec2(x, y), vec4(0.2, 0.4, 1, 1));
 
-      vec2 relativePositionOnSurface = vec2(float(x) / float(frameImageSize.x), float(y) / float(frameImageSize.y));
-      vec2 positionOnSurface = relativePositionOnSurface * surfaceSize;
-      vec2 centeredPositionOnSurface = positionOnSurface - surfaceSize / 2;
-      vec3 lookAtPoint = surfaceOrigin + centeredPositionOnSurface.x * surfaceRight + centeredPositionOnSurface.y * surfaceUp;
+      vec3 imagePointColor = vec3(0, 0, 0);
+      int nIterations = 4;
 
-      vec3 nextRayOrigin = cameraPosition;
-      vec3 nextRayDirection = normalize(lookAtPoint - cameraPosition);
+      for (int iterationIndex = 0; iterationIndex < nIterations; iterationIndex++) {
+        vec2 relativePositionOnSurface = vec2(float(x) / float(frameImageSize.x), float(y) / float(frameImageSize.y));
+        vec2 positionOnSurface = relativePositionOnSurface * surfaceSize;
+        vec2 centeredPositionOnSurface = positionOnSurface - surfaceSize / 2;
+        vec3 lookAtPoint = surfaceOrigin + centeredPositionOnSurface.x * surfaceRight + centeredPositionOnSurface.y * surfaceUp;
 
-      RaycastInfo rayResults[4];
-      int lastRayResultIndex = 0;
-      
-      for (int rayDepth = 0; rayDepth < 4; rayDepth++) {
-        RaycastInfo raycastInfo = makeEmptyRaycastInfo();
-        raycastInfo.rayDepth = rayDepth;
-        raycastInfo.rayOrigin = nextRayOrigin;
-        raycastInfo.rayDirection = nextRayDirection;
+        vec3 nextRayOrigin = cameraPosition;
+        vec3 nextRayDirection = normalize(lookAtPoint - cameraPosition);
 
-        raycast(raycastInfo); 
+        RaycastInfo rayResults[4];
+        int lastRayResultIndex = 0;
+        
+        for (int rayDepth = 0; rayDepth < 4; rayDepth++) {
+          RaycastInfo raycastInfo = makeEmptyRaycastInfo();
+          raycastInfo.rayDepth = rayDepth;
+          raycastInfo.rayOrigin = nextRayOrigin;
+          raycastInfo.rayDirection = nextRayDirection;
 
-        if (!raycastInfo.hit) {
-          raycastInfo.hitEmittance = vec3(1, 1, 1);
+          raycast(raycastInfo); 
+
+          if (!raycastInfo.hit) {
+            raycastInfo.hitEmittance = max(0.4, dot(vec3(0.1, 1, 0), raycastInfo.rayDirection)) * vec3(1, 1, 1);
+          }
+
+          rayResults[rayDepth] = raycastInfo;
+
+          lastRayResultIndex = rayDepth;
+
+          if (raycastInfo.hit) {
+            vec3 normNormal = normalize(raycastInfo.hitNormal);
+            float nextDirectionOffset = 2 * dot(raycastInfo.rayDirection, normNormal);
+            vec2 randomSeed = vec2(float(x), float(y) + float(iterationIndex));
+            nextRayDirection = normalize(vec3(rand(randomSeed), rand(randomSeed), rand(randomSeed)));
+            // FOR MIRROR REFLECTION: nextRayDirection = raycastInfo.rayDirection + normNormal * nextDirectionOffset;
+            nextRayOrigin = raycastInfo.hitPosition;
+          } else {
+            break;
+          }
         }
 
-        rayResults[rayDepth] = raycastInfo;
+        vec3 resultColor = vec3(0, 0, 0);
 
-        lastRayResultIndex = rayDepth;
-
-        if (raycastInfo.hit) {
-          nextRayOrigin = raycastInfo.hitPosition;
-          vec3 normNormal = normalize(raycastInfo.hitNormal);
-          float nextDirectionOffset = 2 * dot(raycastInfo.rayDirection, normNormal);
-          nextRayDirection = raycastInfo.rayDirection + normNormal * nextDirectionOffset;
-        } else {
-          break;
+        for (int rayResultIndex = lastRayResultIndex; rayResultIndex >= 0; rayResultIndex--) {
+          resultColor += rayResults[rayResultIndex].hitEmittance;
+          resultColor *= rayResults[rayResultIndex].hitAttenuation;
         }
+
+        imagePointColor += resultColor;
       }
 
-      vec3 resultColor = vec3(0, 0, 0);
+      imagePointColor /= float(nIterations);
 
-      for (int rayResultIndex = lastRayResultIndex; rayResultIndex >= 0; rayResultIndex--) {
-        resultColor += rayResults[rayResultIndex].hitEmittance;
-        resultColor *= rayResults[rayResultIndex].hitAttenuation;
-      }
-
-      imageStore(frameImage, ivec2(x, y), vec4(resultColor, 1));
+      imageStore(frameImage, ivec2(x, y), vec4(imagePointColor, 1));
     }
   }
+}
+
+void main() {
+  execute();
 }
