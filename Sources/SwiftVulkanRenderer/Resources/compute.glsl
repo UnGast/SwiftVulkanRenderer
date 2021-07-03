@@ -90,7 +90,7 @@ void raycast(inout RaycastInfo raycastInfo) {
   bool hit = false;
   float closestIntersectionScale = 0;
 
-  for (int objectIndex = 0; objectIndex < min(3, objectCount); objectIndex++) {
+  for (int objectIndex = 0; objectIndex < objectCount; objectIndex++) {
     ObjectDrawInfo objectDrawInfo = objectDrawInfos[objectIndex];
     MaterialDrawInfo materialDrawInfo = materialDrawInfos[objectDrawInfo.materialIndex];
     uint faceCount = objectDrawInfo.vertexCount / 3;
@@ -119,7 +119,7 @@ void raycast(inout RaycastInfo raycastInfo) {
 
       float intersectionScale = (dot(computedFaceNormal, faceOrigin) - dot(computedFaceNormal, raycastInfo.rayOrigin)) / dot(computedFaceNormal, normalizedRayDirection);
 
-      if (intersectionScale < 0.001) {
+      if (intersectionScale < 0.01) {
         continue;
       }
 

@@ -23,6 +23,13 @@ scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: secondMaterial, 
 	0, 0, 0, 1
 ])))
 
+scene.objects.append(SceneObject(mesh: Mesh.sphere(subdivisionCount: 1), material: secondMaterial, transformationMatrix: FMat4([
+	1, 0, 0, -1,
+	0, 1, 0, 0.8,
+	0, 0, 1, 2,
+	0, 0, 0, 1
+])))
+
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: thirdMaterial, transformationMatrix: FMat4([
 	30, 0, 0, -2,
 	0, 1, 0, -1,
