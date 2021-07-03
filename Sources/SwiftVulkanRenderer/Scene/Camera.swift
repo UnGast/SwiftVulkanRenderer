@@ -4,6 +4,8 @@ import GfxMath
 public final class Camera {
     public var position: FVec3
 
+    public var fov: Float
+
     let worldUp: FVec3
     public var pitch: Float {
         didSet {
@@ -21,6 +23,8 @@ public final class Camera {
 
     public init(worldUp: FVec3 = FVec3(0, 1, 0)) {
         self.position = .zero
+
+        self.fov = .pi / 2
 
         self.worldUp = worldUp
         self.pitch = 0

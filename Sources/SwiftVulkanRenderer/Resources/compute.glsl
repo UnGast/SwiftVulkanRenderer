@@ -41,6 +41,7 @@ layout(push_constant) uniform PushConstants{
   vec3 cameraForwardDirection;
   vec3 cameraRightDirection;
   uint unusedPlaceholder; // only used because for last value, packing is different? uint will be put directly after vec3 not like other vec3 which are stored like vec4
+  float cameraFov;
   uint objectCount;
 };
 layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
@@ -179,7 +180,8 @@ void execute() {
   vec3 surfaceOrigin = cameraPosition + normalizedCameraForwardDirection * 1;
   vec3 surfaceRight = normalize(cameraRightDirection);
   vec3 surfaceUp = normalize(cross(surfaceRight, normalizedCameraForwardDirection));
-  vec2 surfaceSize = vec2(1, float(frameImageSize.y) / float(frameImageSize.x));
+  float surfaceWidth = tan(cameraFov / 2) * 2;
+  vec2 surfaceSize = vec2(surfaceWidth, surfaceWidth / float(frameImageSize.x) * float(frameImageSize.y));
 
   for (uint x = startX; x < endX; x += 1) {
     for (uint y = startY; y < endY; y += 1) {

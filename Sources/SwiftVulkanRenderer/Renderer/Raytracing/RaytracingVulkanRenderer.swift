@@ -616,6 +616,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       cameraPosition: scene.camera.position,
       cameraForwardDirection: scene.camera.forward,
       cameraRightDirection: scene.camera.right,
+      cameraFov: scene.camera.fov,
       objectCount: UInt32(scene.objects.count)
     )
     let pushConstantSize = PushConstantBlock.serializedSize

@@ -5,10 +5,11 @@ extension RaytracingVulkanRenderer {
 		var cameraPosition: FVec3
 		var cameraForwardDirection: FVec3 
 		var cameraRightDirection: FVec3 
+		var cameraFov: Float
 		var objectCount: UInt32
 		
 		static var serializationMeasureInstance: Self {
-			Self(cameraPosition: .zero, cameraForwardDirection: .zero, cameraRightDirection: .zero, objectCount: 0)
+			Self(cameraPosition: .zero, cameraForwardDirection: .zero, cameraRightDirection: .zero, cameraFov: 0, objectCount: 0)
 		}
 	}
 }
