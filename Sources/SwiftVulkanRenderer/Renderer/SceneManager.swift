@@ -105,7 +105,7 @@ public class SceneManager {
     try vertexStagingBuffer.store(vertexData)
     vertexBuffer.copy(from: vertexStagingBuffer, srcRange: 0..<vertexStagingBuffer.size, dstOffset: 0, commandBuffer: commandBuffer)
 
-    try drawCommandBuffer.store(drawCommands)
+    try drawCommandBuffer.storeAlignedCStructs(drawCommands)
     
     let waitSemaphores = sceneContentWaitSemaphore != nil ? [sceneContentWaitSemaphore!] : []
 

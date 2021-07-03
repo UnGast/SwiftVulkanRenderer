@@ -155,7 +155,7 @@ extension BufferSerializableStruct {
     }
 
     @inlinable public func serialize(into buffer: UnsafeMutableRawPointer, offset: Int) {
-        let baseAlignment = Self.serializedBaseAlignment
+        //let baseAlignment = Self.serializedBaseAlignment
         var currentOffset = offset
         for member in Self.serializableMembers(in: self) {
             member.serialize(into: buffer, offset: currentOffset)

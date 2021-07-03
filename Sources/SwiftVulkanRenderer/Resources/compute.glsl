@@ -86,7 +86,7 @@ void raycast(inout RaycastInfo raycastInfo) {
   bool hit = false;
   float closestIntersectionScale = 0;
 
-  for (int objectIndex = 0; objectIndex < objectCount; objectIndex++) {
+  for (int objectIndex = 0; objectIndex < min(3, objectCount); objectIndex++) {
     ObjectDrawInfo objectDrawInfo = objectDrawInfos[objectIndex];
     MaterialDrawInfo materialDrawInfo = materialDrawInfos[objectDrawInfo.materialIndex];
     uint faceCount = objectDrawInfo.vertexCount / 3;
@@ -130,9 +130,10 @@ void raycast(inout RaycastInfo raycastInfo) {
         float barycentricSum = dot(barycentricIntersection, vec3(1, 1, 1));
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
-          raycastInfo.hitAttenuation = vec3(0.5, 0.5, 0.5);//float(objectIndex), float(objectIndex), float(objectIndex));
+          raycastInfo.hitAttenuation = vec3(0.5, 0.5, 0.5);
           raycastInfo.hitPosition = intersection;
           raycastInfo.hitNormal = vertex1.normal * barycentricIntersection.x + vertex2.normal * barycentricIntersection.y + vertex3.normal * barycentricIntersection.z;
+          raycastInfo.hitAttenuation = vec3(float(objectDrawInfo.materialIndex), 0.5, 0.5);
           raycastInfo.hitObjectIndex = objectIndex;
           raycastInfo.hit = true;
           hit = true;

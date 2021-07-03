@@ -42,6 +42,8 @@ extension RaytracingVulkanRenderer {
       try updateObjectGeometryData()
 
       try updateObjectDrawInfoData()
+
+      vkDeviceWaitIdle(renderer.device)
     }
 
     func updateObjectGeometryData() throws {
@@ -60,6 +62,8 @@ extension RaytracingVulkanRenderer {
       vertexCount = vertices.count
       try objectGeometryStagingBuffer.store(vertices)
 
+      print("VERTEX DATA SIZE", vertices.count * Vertex.serializedSize, Vertex.serializedSize)
+
       try objectGeometryBuffer.copy(from: objectGeometryStagingBuffer, srcRange: 0..<(vertices.count * Vertex.serializedSize), dstOffset: 0, commandBuffer: commandBuffer)
 
       try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
@@ -69,7 +73,6 @@ extension RaytracingVulkanRenderer {
       var objectDrawInfos = [ObjectDrawInfo]()
       for object in scene.objects {
         let materialIndex = try renderer.materialSystem.loadMaterial(object.material)
-        print("OBJECT MATERIAL INDEX", materialIndex)
 
         let meshVertexInfo = meshVertexInfos[object.mesh]!
         objectDrawInfos.append(ObjectDrawInfo(
@@ -80,7 +83,7 @@ extension RaytracingVulkanRenderer {
         ))
       }
       
-      try objectDrawInfoStagingBuffer.store(objectDrawInfos)
+      try objectDrawInfoStagingBuffer.store(objectDrawInfos, strideMultiple16: true)
 
       let commandBuffer = try renderer.beginSingleTimeCommands()
 
