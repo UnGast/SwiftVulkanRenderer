@@ -58,6 +58,8 @@ layout(set = 1, binding = 1) buffer ObjectDrawInfoBuffer{
 layout(set = 1, binding = 2) buffer MaterialDrawInfoBuffer{
   MaterialDrawInfo materialDrawInfos[];
 };
+layout(set = 1, binding = 3) uniform texture2D materialImages[];
+layout(set = 1, binding = 4) uniform sampler materialImageSampler;
 
 float getAreaOfTriangle(vec3 vertex1Position, vec3 vertex2Position, vec3 vertex3Position) {
   vec3 edge1 = vertex2Position - vertex1Position;

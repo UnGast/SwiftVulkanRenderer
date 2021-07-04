@@ -427,6 +427,20 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorCount: 1,
         stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
         pImmutableSamplers: nil
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 3,
+        descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        descriptorCount: UInt32(materialSystem.materialImages.count),
+        stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
+        pImmutableSamplers: nil
+      ),
+      VkDescriptorSetLayoutBinding(
+        binding: 4,
+        descriptorType: VK_DESCRIPTOR_TYPE_SAMPLER,
+        descriptorCount: 1,
+        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
+        pImmutableSamplers: samplers
       )
     ]
 
@@ -475,6 +489,13 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       offset: 0,
       range: VK_WHOLE_SIZE
     )
+    var textureInfos = materialSystem.materialImages.map {
+      VkDescriptorImageInfo(
+        sampler: nil,
+        imageView: $0.imageView,
+        imageLayout: VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+      )
+    }
 
     var descriptorWrites: [VkWriteDescriptorSet] = [
       VkWriteDescriptorSet(
@@ -511,6 +532,18 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
         pBufferInfo: &materialDrawInfoBufferInfo,
+        pTexelBufferView: nil
+      ),
+      VkWriteDescriptorSet(
+        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        pNext: nil,
+        dstSet: sceneDescriptorSet,
+        dstBinding: 3,
+        dstArrayElement: 0,
+        descriptorCount: UInt32(textureInfos.count),
+        descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        pImageInfo: &textureInfos,
+        pBufferInfo: nil,
         pTexelBufferView: nil
       )
     ]

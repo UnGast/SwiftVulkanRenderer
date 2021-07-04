@@ -75,7 +75,7 @@ public class SceneManager {
 
     var commandBuffer = try renderer.beginSingleTimeCommands()
 
-    let oldTextureCount = materialSystem.textures.count
+    let oldMaterialImagesCount = materialSystem.materialImages.count
 
     var vertexData = [Float]()
     var currentVertexCount = 0
@@ -96,9 +96,9 @@ public class SceneManager {
       fatalError("reimplement vertex data transfer with buffer serializable")
     }
 
-    let newTextureCount = materialSystem.textures.count
+    let newMaterialImagesCount = materialSystem.materialImages.count
 
-    if newTextureCount != oldTextureCount {
+    if newMaterialImagesCount != oldMaterialImagesCount {
       try renderer.recreateGraphicsPipeline()
     }
 

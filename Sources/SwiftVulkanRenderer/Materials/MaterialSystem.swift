@@ -8,7 +8,7 @@ class MaterialSystem {
     var materialDrawInfoIndices: [ObjectIdentifier: Int] = [:]
     var materialDrawInfos: [MaterialDrawInfo] = []
 
-    private(set) var textures: [ManagedGPUImage] = []
+    private(set) var materialImages: [ManagedGPUImage] = []
 
     let materialDataMemoryManager: MemoryManager
     @Deferred var materialDataBuffer: ManagedGPUBuffer
@@ -29,18 +29,12 @@ class MaterialSystem {
             return index
         }
 
-        //let textureImage = try self.createTextureImage(image: material.texture)
-        //let textureView = createImageView(image: textureImage, format: VK_FORMAT_R8G8B8A8_SRGB)
-
-        //let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
-        //self.textures.append(managedTextureImage)
-
         let drawInfo: MaterialDrawInfo
         switch material {
         case let material as Dielectric:
             drawInfo = MaterialDrawInfo(type: 0, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: material.refractiveIndex)
         case let material as Lambertian:
-            drawInfo = MaterialDrawInfo(type: 1, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: 1)
+            drawInfo = try firstLoadMaterial(lambertian: material)
         default:
             fatalError("unsupported material type")
         }
@@ -50,6 +44,16 @@ class MaterialSystem {
         materialDrawInfoIndices[ObjectIdentifier(material)] = index
 
         return index
+    }
+
+    private func firstLoadMaterial(lambertian: Lambertian) throws -> MaterialDrawInfo {
+        let textureImage = try self.createTextureImage(image: lambertian.texture)
+        let textureView = createImageView(image: textureImage, format: VK_FORMAT_R8G8B8A8_SRGB)
+
+        let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
+        self.materialImages.append(managedTextureImage)
+
+        return MaterialDrawInfo(type: 1, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: 0)
     }
 
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)

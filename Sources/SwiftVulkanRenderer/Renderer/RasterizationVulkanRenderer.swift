@@ -463,7 +463,7 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
       VkDescriptorSetLayoutBinding(
         binding: 2,
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        descriptorCount: UInt32(sceneManager.materialSystem.textures.count),
+        descriptorCount: UInt32(sceneManager.materialSystem.materialImages.count),
         stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
         pImmutableSamplers: nil
       ),
@@ -523,7 +523,7 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
       offset: 0,
       range: VkDeviceSize(sceneManager.objectBuffer.size)
     )
-    var textureInfos = sceneManager.materialSystem.textures.map {
+    var textureInfos = sceneManager.materialSystem.materialImages.map {
       VkDescriptorImageInfo(
         sampler: nil,
         imageView: $0.imageView,
