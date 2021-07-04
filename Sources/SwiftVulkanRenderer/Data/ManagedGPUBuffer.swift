@@ -1,4 +1,5 @@
 import Foundation
+import Swim
 import Vulkan
 
 public class ManagedGPUBuffer {
@@ -51,6 +52,10 @@ public class ManagedGPUBuffer {
         for (index, element) in data.enumerated() {
             element.serialize(into: dataPointer.advanced(by: offset + index * stride), offset: 0)
         }
+    }
+
+    public func store(_ image: Swim.Image<RGBA, UInt8>) throws {
+        dataPointer.copyMemory(from: image.getData(), byteCount: Int(image.width * image.height * 4))
     }
 
     public func copy(from srcBuffer: ManagedGPUBuffer, srcRange: Range<Int>, dstOffset: Int, commandBuffer: VkCommandBuffer) {

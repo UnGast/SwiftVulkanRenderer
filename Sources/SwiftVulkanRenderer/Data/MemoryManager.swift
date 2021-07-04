@@ -38,7 +38,11 @@ public class MemoryManager {
       throw MemoryCapacityExceededError()
     }
 
-    return memoryOffset..<memoryEnd
+    let range = memoryOffset..<memoryEnd
+
+    memory.usedRanges.append(range)
+
+    return range
   }
 
   public func getBuffer(size: Int, usage: VkBufferUsageFlagBits) throws -> ManagedGPUBuffer {
@@ -64,14 +68,23 @@ public class MemoryManager {
 
     vkBindBufferMemory(renderer.device, buffer, memory.memory, memoryRange.lowerBound)
 
-    memory.usedRanges.append(memoryRange)
-
     return ManagedGPUBuffer(memory: memory, buffer: buffer!, range: memoryRange)
   }
 
-  /*public func getImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkIMageTiling, usage: VkImageUsageFlagBits) throws -> ManagedGPUImage {
+  func getImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkImageTiling, usage: VkImageUsageFlagBits) throws -> ManagedGPUImage {
+   let (image, memoryRange) = try createImage(
+      width: width,
+      height: height,
+      format: VK_FORMAT_R8G8B8A8_SRGB,
+      tiling: VK_IMAGE_TILING_OPTIMAL,
+      usage: VkImageUsageFlagBits(rawValue: VK_IMAGE_USAGE_TRANSFER_DST_BIT.rawValue | VK_IMAGE_USAGE_SAMPLED_BIT.rawValue),
+      properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+    )
 
-  }*/
+    let imageView = createImageView(image: image, format: format)
+
+    return ManagedGPUImage(memory: memory, memoryRange: memoryRange, image: image, imageView: imageView)
+  }
 
   /*private func createRawImage(image cpuImage: Swim.Image<RGBA, UInt8>) throws -> VkImage {
     let imageDataSize = VkDeviceSize(cpuImage.width * cpuImage.height * 4)
@@ -101,7 +114,7 @@ public class MemoryManager {
     return textureImage
   }*/
 
-  /*private func createImageView(image: VkImage, format: VkFormat) -> VkImageView {
+  private func createImageView(image: VkImage, format: VkFormat) -> VkImageView {
     var viewInfo = VkImageViewCreateInfo(
       sType: VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       pNext: nil,
@@ -129,7 +142,7 @@ public class MemoryManager {
     return imageView
   }
 
-  private func createImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkImageTiling, usage: VkImageUsageFlagBits, properties: VkMemoryPropertyFlagBits) throws -> (VkImage, ) {
+  private func createImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkImageTiling, usage: VkImageUsageFlagBits, properties: VkMemoryPropertyFlagBits) throws -> (VkImage, Range<VkDeviceSize>) {
     var imageInfo = VkImageCreateInfo(
       sType: VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       pNext: nil,
@@ -162,7 +175,9 @@ public class MemoryManager {
     var memRequirements = VkMemoryRequirements()
     vkGetImageMemoryRequirements(renderer.device, image, &memRequirements)
 
-    var allocInfo = VkMemoryAllocateInfo(
+    let memoryRange = try allocateMemoryRange(size: memRequirements.size)
+
+    /*var allocInfo = VkMemoryAllocateInfo(
         sType: VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         pNext: nil,
         allocationSize: memRequirements.size,
@@ -174,11 +189,12 @@ public class MemoryManager {
     guard let imageMemory = imageMemoryOpt else {
         fatalError("could not create image memory")
     }*/
+    */
 
-    vkBindImageMemory(renderer.device, image, imageMemory, 0)
+    vkBindImageMemory(renderer.device, image, memory.memory, memoryRange.lowerBound)
 
-    return (image, imageMemory)
-  }*/
+    return (image, memoryRange)
+  }
 
   public struct MemoryCapacityExceededError: Error {
   }
