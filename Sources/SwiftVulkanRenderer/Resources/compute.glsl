@@ -171,13 +171,6 @@ void raycast(inout RaycastInfo raycastInfo) {
 float rand(vec2 co){
   return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
-/*
-vec3 refract(vec3 incoming, vec3 normal, float refractionRatio) {
-  float cosTheta = min(dot(-normalize(incoming), normal.normalized()), 1);
-  vec3 outgoingPerpendicular = refractionRatio * (incoming + cosTheta * normal);
-  vec3 outgoingParallel = -sqrt(abs(1 - dot(outgoingPerpendicular, outgoingPerpendicular))) * normal;
-  return outgoingPerpendicular + outgoingParallel
-}*/
 
 void setNextRayParameters(RaycastInfo incidentRayInfo, vec3 incidentRandomSeed, inout vec3 nextRayOrigin, inout vec3 nextRayDirection) {
   MaterialDrawInfo incidentMaterial = materialDrawInfos[objectDrawInfos[incidentRayInfo.hitObjectIndex].materialIndex];

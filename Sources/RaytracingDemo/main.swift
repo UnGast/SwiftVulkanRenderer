@@ -6,7 +6,7 @@ import SwiftVulkanRenderer
 
 let mainMaterial = Lambertian(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 120, g: 250, b: 240, a: 255)))
 let secondMaterial = Dielectric(refractiveIndex: 1.2)
-let thirdMaterial = Lambertian(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
+let thirdMaterial = Lambertian(texture: Swim.Image(width: 1, height: 1, color: Swim.Color(r: 50, g: 60, b: 210, a: 255)))
 
 let scene = Scene()
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, transformationMatrix: FMat4([

@@ -5,18 +5,23 @@ import Vulkan
 class MaterialSystem {
     private let renderer: VulkanRenderer
 
+    let materialDataMemoryManager: MemoryManager
+    @Deferred var materialDataBuffer: ManagedGPUBuffer
     var materialDrawInfoIndices: [ObjectIdentifier: Int] = [:]
     var materialDrawInfos: [MaterialDrawInfo] = []
 
+    let materialImagesMemoryManager: MemoryManager
+    let materialImagesStagingMemoryManager: MemoryManager
     private(set) var materialImages: [ManagedGPUImage] = []
-
-    let materialDataMemoryManager: MemoryManager
-    @Deferred var materialDataBuffer: ManagedGPUBuffer
 
     init(renderer: VulkanRenderer) throws {
         self.renderer = renderer 
 
         materialDataMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: try renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
+
+        materialImagesMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: try renderer.findMemoryType(typeFilter: ~0, properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+        materialImagesStagingMemoryManager = try MemoryManager(renderer: renderer, memoryTypeIndex: try renderer.findMemoryType(typeFilter: ~0, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue)))
+        
         materialDataBuffer = try materialDataMemoryManager.getBuffer(size: 1024, usage: VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
     }
     
@@ -50,7 +55,7 @@ class MaterialSystem {
         let textureImage = try self.createTextureImage(image: lambertian.texture)
         let textureView = createImageView(image: textureImage, format: VK_FORMAT_R8G8B8A8_SRGB)
 
-        let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
+        let managedTextureImage = ManagedGPUImage(memory: materialImagesMemoryManager.memory, memoryRange: 0..<1, image: textureImage, imageView: textureView)
         self.materialImages.append(managedTextureImage)
 
         return MaterialDrawInfo(type: 1, textureIndex: UInt32(materialImages.count - 1), refractiveIndex: 0)

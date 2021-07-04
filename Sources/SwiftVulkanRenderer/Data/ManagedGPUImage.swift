@@ -1,20 +1,20 @@
 import Vulkan
 
 class ManagedGPUImage {
+    unowned let memory: ManagedGPUMemory
+    let memoryRange: Range<Int>
     var image: VkImage
     var imageView: VkImageView
-    //let memory: ManagedGPUMemory
-    //let memoryRange: Range<Int>
 
     init(
+        memory: ManagedGPUMemory,
+        memoryRange: Range<Int>,
         image: VkImage,
         imageView: VkImageView
-        //memory: ManagedGPUMemory,
-        //memoryRange: Range<Int>
     ) {
+        self.memory = memory
+        self.memoryRange = memoryRange
         self.image = image
         self.imageView = imageView
-        //self.memory = memory
-        //self.memoryRange = memoryRange
     }
 }

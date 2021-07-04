@@ -4,7 +4,7 @@ class ManagedGPUMemory {
   unowned let manager: MemoryManager
   let memory: VkDeviceMemory
   let size: Int
-  var usedRanges: [Range<Int>] = []
+  var usedRanges: [Range<VkDeviceSize>] = []
 	var dataPointer: UnsafeMutableRawPointer? = nil
 
   public init(manager: MemoryManager, memory: VkDeviceMemory, size: Int) {
