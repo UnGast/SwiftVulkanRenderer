@@ -134,7 +134,7 @@ void raycast(inout RaycastInfo raycastInfo) {
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
           if (materialDrawInfo.type != MaterialTypeDielectric) {
-            raycastInfo.hitAttenuation = vec3(0.5, 0.5, 0.5);
+            raycastInfo.hitAttenuation = texture(sampler2D(materialImages[nonuniformEXT(materialDrawInfo.textureIndex)], materialImageSampler), vec2(0, 0)).xyz; //vec3(0.5, 0.5, 0.5);
           } else {
             raycastInfo.hitAttenuation = vec3(1, 1, 1);
           }

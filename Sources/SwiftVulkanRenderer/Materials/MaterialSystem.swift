@@ -32,7 +32,7 @@ class MaterialSystem {
         let drawInfo: MaterialDrawInfo
         switch material {
         case let material as Dielectric:
-            drawInfo = MaterialDrawInfo(type: 0, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: material.refractiveIndex)
+            drawInfo = MaterialDrawInfo(type: 0, textureIndex: UInt32(materialImages.count - 1), refractiveIndex: material.refractiveIndex)
         case let material as Lambertian:
             drawInfo = try firstLoadMaterial(lambertian: material)
         default:
@@ -53,7 +53,7 @@ class MaterialSystem {
         let managedTextureImage = ManagedGPUImage(image: textureImage, imageView: textureView)
         self.materialImages.append(managedTextureImage)
 
-        return MaterialDrawInfo(type: 1, textureIndex: 0/*UInt32(textures.count - 1)*/, refractiveIndex: 0)
+        return MaterialDrawInfo(type: 1, textureIndex: UInt32(materialImages.count - 1), refractiveIndex: 0)
     }
 
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)
