@@ -64,12 +64,12 @@ let application = VulkanRendererApplication(createRenderer: {
 	try RaytracingVulkanRenderer(scene: scene, instance: $0, surface: $1)
 }, scene: scene) 
 
-/*
+
 DispatchQueue.global().async {
 	var nextX = Float(0)
 	while true {
 		DispatchQueue.main.async {
-			scene.objects.append(SceneObject(mesh: Mesh.cuboid(material: mainMaterial), transformationMatrix: FMat4([
+			scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, transformationMatrix: FMat4([
 				1, 0, 0, nextX,
 				0, 1, 0, 0,
 				0, 0, 1, 0,
@@ -88,7 +88,7 @@ DispatchQueue.global().async {
 		}
 		sleep(1)
 	}
-}*/
+}
 
 var frameCount = 0
 

@@ -76,13 +76,15 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   public func updateSceneContent() throws {
+    try sceneManager.updateObjectGeometryData()
   }
 
 	public func updateSceneObjectMeta() throws {
+    try sceneManager.updateObjectDrawInfoData()
   }
 
+  /// note: has no effect on this renderer, camera stuff handled via push constants on every frame automatically 
   public func updateSceneCameraUniforms() throws {
-    // camera stuff handled via push constants
   }
 
 	func pickPhysicalDevice() throws {
