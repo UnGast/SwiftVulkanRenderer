@@ -87,6 +87,14 @@ class MaterialSystem {
         return gpuImage
     }
 
+    func removeMaterial(id: ObjectIdentifier) throws {
+        print("REMOVING MATERIAL!")
+        let index = materialDrawInfoIndices[id]!
+        materialDrawInfoIndices[id] = nil
+        let materialDrawInfo = materialDrawInfos[index]
+        materialImages[Int(materialDrawInfo.textureIndex)].destroy()
+    }
+
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)
     public func updateGPUData() throws {
         print("UPDATE GPU")

@@ -46,6 +46,31 @@ extension RaytracingVulkanRenderer {
       vkDeviceWaitIdle(renderer.device)
     }
 
+    func syncUpdate() throws {
+      var currentExistingMaterialIds: [ObjectIdentifier] = []
+      var needObjectDrawInfoUpdate: Bool = false
+
+      for sceneObject in scene.objects {
+        currentExistingMaterialIds.append(ObjectIdentifier(sceneObject.material))
+        if !sceneObject.rendererSyncState.material {
+          needObjectDrawInfoUpdate = true
+        }
+      }
+
+      let previousExistingMaterialIds = renderer.materialSystem.materialDrawInfoIndices.keys
+      for previousExistingMaterialId in previousExistingMaterialIds {
+        if !currentExistingMaterialIds.contains(previousExistingMaterialId) {
+          try renderer.materialSystem.removeMaterial(id: previousExistingMaterialId)
+        }
+      }
+
+      if needObjectDrawInfoUpdate {
+        try updateObjectDrawInfoData()
+      }
+
+      vkDeviceWaitIdle(renderer.device)
+    }
+
     func updateObjectGeometryData() throws {
       meshVertexInfos = [:]
 
@@ -81,6 +106,8 @@ extension RaytracingVulkanRenderer {
           vertexCount: UInt32(meshVertexInfo.count),
           materialIndex: UInt32(materialIndex)
         ))
+
+        object.rendererSyncState.material = true
       }
       
       try objectDrawInfoStagingBuffer.store(objectDrawInfos, strideMultiple16: true)

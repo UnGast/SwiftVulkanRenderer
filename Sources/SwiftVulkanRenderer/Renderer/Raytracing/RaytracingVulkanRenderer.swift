@@ -670,6 +670,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   public func draw() throws {
+    try sceneManager.syncUpdate()
+
     var acquireFenceInfo = VkFenceCreateInfo(
       sType: VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
       pNext: nil,

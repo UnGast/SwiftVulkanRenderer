@@ -5,6 +5,7 @@ class ManagedGPUImage {
     let memoryRange: Range<VkDeviceSize>
     var image: VkImage
     var imageView: VkImageView
+    var destroyed: Bool = false
 
     init(
         memory: ManagedGPUMemory,
@@ -85,5 +86,15 @@ class ManagedGPUImage {
             1,
             &region
         )
+    }
+
+    public func destroy() {
+        destroyed = true
+    }
+
+    deinit {
+        if !destroyed {
+            print("warning: \(self) was deinitialized before being explicitly destroyed")
+        }
     }
 }
