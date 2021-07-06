@@ -434,7 +434,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         binding: 3,
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
         descriptorCount: UInt32(materialSystem.materialImages.count),
-        stageFlags: VK_SHADER_STAGE_FRAGMENT_BIT.rawValue,
+        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
         pImmutableSamplers: nil
       ),
       VkDescriptorSetLayoutBinding(
@@ -607,6 +607,14 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     self.computePipeline = pipeline!
     self.computePipelineLayout = pipelineLayout
+  }
+
+  func recreateComputePipeline() throws {
+    vkDestroyPipeline(device, computePipeline, nil)
+    vkDestroyDescriptorSetLayout(device, sceneDescriptorSetLayout, nil)
+    try createSceneDescriptorSetLayout()
+    try createSceneDescriptorSet()
+    try createComputePipeline()
   }
 
   func createCommandPool() throws {

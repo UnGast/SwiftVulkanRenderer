@@ -67,6 +67,8 @@ class MaterialSystem {
     }
 
     private func loadTextureImage(image cpuImage: Swim.Image<RGBA, UInt8>) throws -> ManagedGPUImage {
+        print("LOADING TEXTURE IMAGE", cpuImage.extrema(channel: .red))
+
         let gpuImage = try materialImagesMemoryManager.getImage(
             width: UInt32(cpuImage.width),
             height: UInt32(cpuImage.height),
@@ -88,7 +90,6 @@ class MaterialSystem {
     }
 
     func removeMaterial(id: ObjectIdentifier) throws {
-        print("REMOVING MATERIAL!")
         let index = materialDrawInfoIndices[id]!
         materialDrawInfoIndices[id] = nil
         let materialDrawInfo = materialDrawInfos[index]
@@ -99,6 +100,6 @@ class MaterialSystem {
     public func updateGPUData() throws {
         print("UPDATE GPU")
         try materialDataBuffer.store(materialDrawInfos, strideMultiple16: false)
-        print("FINISH UPDATE GU")
+        print("FINISH UPDATE GU", materialDrawInfos)
     }
 }

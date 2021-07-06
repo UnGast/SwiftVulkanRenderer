@@ -86,34 +86,6 @@ public class MemoryManager {
     return ManagedGPUImage(memory: memory, memoryRange: memoryRange, image: image, imageView: imageView)
   }
 
-  /*private func createRawImage(image cpuImage: Swim.Image<RGBA, UInt8>) throws -> VkImage {
-    let imageDataSize = VkDeviceSize(cpuImage.width * cpuImage.height * 4)
-
-    let (stagingBuffer, stagingBufferMemory) = try createBuffer(
-        size: imageDataSize, usage: VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties: VkMemoryPropertyFlagBits(rawValue: VK_MEMORY_PROPERTY_HOST_COHERENT_BIT.rawValue | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.rawValue))
-    var stagingBufferMemoryPointer: UnsafeMutableRawPointer?
-    vkMapMemory(renderer.device, stagingBufferMemory, 0, imageDataSize, 0, &stagingBufferMemoryPointer)
-    stagingBufferMemoryPointer?.copyMemory(from: cpuImage.getData(), byteCount: Int(imageDataSize))
-    vkUnmapMemory(renderer.device, stagingBufferMemory)
-
-    let (textureImage, textureImageMemory) = try createImage(
-        width: UInt32(cpuImage.width),
-        height: UInt32(cpuImage.height),
-        format: VK_FORMAT_R8G8B8A8_SRGB,
-        tiling: VK_IMAGE_TILING_OPTIMAL,
-        usage: VkImageUsageFlagBits(rawValue: VK_IMAGE_USAGE_TRANSFER_DST_BIT.rawValue | VK_IMAGE_USAGE_SAMPLED_BIT.rawValue),
-        properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-    )
-
-    /*try transitionImageLayout(image: textureImage, format: VK_FORMAT_R8G8B8A8_SRGB, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-    try copyBufferToImage(buffer: stagingBuffer, image: textureImage, width: UInt32(cpuImage.width), height: UInt32(cpuImage.height))
-    try transitionImageLayout(image: textureImage, format: VK_FORMAT_R8G8B8A8_SRGB, oldLayout: VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, newLayout: VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-
-    vkDeviceWaitIdle(renderer.device)*/
-
-    return textureImage
-  }*/
-
   private func createImageView(image: VkImage, format: VkFormat) -> VkImageView {
     var viewInfo = VkImageViewCreateInfo(
       sType: VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,

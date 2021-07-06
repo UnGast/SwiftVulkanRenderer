@@ -1,5 +1,4 @@
 #version 460
-#extension GL_ARB_separate_shader_objects:enable
 #extension GL_EXT_nonuniform_qualifier:enable
 
 layout (local_size_x = 8) in;
@@ -134,7 +133,7 @@ void raycast(inout RaycastInfo raycastInfo) {
         if (abs(barycentricSum - 1) <= 0.01) {
           closestIntersectionScale = intersectionScale;
           if (materialDrawInfo.type != MaterialTypeDielectric) {
-            raycastInfo.hitAttenuation = texture(sampler2D(materialImages[nonuniformEXT(materialDrawInfo.textureIndex)], materialImageSampler), vec2(0, 0)).xyz; //vec3(0.5, 0.5, 0.5);
+            raycastInfo.hitAttenuation = texture(sampler2D(materialImages[nonuniformEXT(materialDrawInfo.textureIndex)], materialImageSampler), vec2(0.5, 0.5)).xyz;
           } else {
             raycastInfo.hitAttenuation = vec3(1, 1, 1);
           }

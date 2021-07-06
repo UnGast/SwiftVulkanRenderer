@@ -66,7 +66,10 @@ extension RaytracingVulkanRenderer {
 
       if needObjectDrawInfoUpdate {
         try updateObjectDrawInfoData()
+        print("UPDATE OBECJT DRWA INFO")
       }
+      
+      try renderer.recreateComputePipeline()
 
       vkDeviceWaitIdle(renderer.device)
     }
@@ -106,6 +109,8 @@ extension RaytracingVulkanRenderer {
           vertexCount: UInt32(meshVertexInfo.count),
           materialIndex: UInt32(materialIndex)
         ))
+
+        print("MATEIRAL INDEX", materialIndex)
 
         object.rendererSyncState.material = true
       }
