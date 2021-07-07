@@ -3,6 +3,8 @@ import HID
 import Vulkan
 
 public class RasterizationVulkanRenderer: VulkanRenderer {
+  public static let drawTargetFormat = VK_FORMAT_B8G8R8A8_SRGB
+
   let scene: Scene
   let instance: VkInstance
   let surface: VkSurfaceKHR

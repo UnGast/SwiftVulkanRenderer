@@ -2,6 +2,8 @@ import Foundation
 import Vulkan
 
 public class RaytracingVulkanRenderer: VulkanRenderer {
+  public static let drawTargetFormat: VkFormat = VK_FORMAT_B8G8R8A8_UNORM
+
   public let device: VkDevice
   public let physicalDevice: VkPhysicalDevice
   public let queueFamilyIndex: UInt32
@@ -496,6 +498,37 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   public func draw(imageIndex: Int) throws {
+    try sceneManager.syncUpdate()
+    vkDeviceWaitIdle(device)
+
+    let currentImage = drawTargetImages[Int(imageIndex)]
+    try transitionImageLayout(image: currentImage, format: Self.drawTargetFormat, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_GENERAL)
+    vkDeviceWaitIdle(device)
+
+    let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(imageIndex))
+
+    var submitCommandBuffers = [Optional(commandBuffer)]
+    var submitWaitSemaphores = self.nextDrawSubmitWaits.map { $0.0 } as! [Optional<VkSemaphore>]
+    var submitDstStageMasks = self.nextDrawSubmitWaits.map { $0.1 }
+    self.nextDrawSubmitWaits = []
+
+    var submitSignalSemaphores = currentDrawFinishSemaphoreCallbacks.flatMap { $0() } as! [VkSemaphore?]
+
+    var submitInfo = VkSubmitInfo(
+      sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      pNext: nil,
+      waitSemaphoreCount: UInt32(submitWaitSemaphores.count),
+      pWaitSemaphores: submitWaitSemaphores,
+      pWaitDstStageMask: submitDstStageMasks,
+      commandBufferCount: 1,
+      pCommandBuffers: submitCommandBuffers,
+      signalSemaphoreCount: UInt32(submitSignalSemaphores.count),
+      pSignalSemaphores: submitSignalSemaphores
+    )
+    vkQueueSubmit(queue, 1, &submitInfo, nil)
+
+    vkDeviceWaitIdle(device)
+
     /*try sceneManager.syncUpdate()
 
     var acquireFenceInfo = VkFenceCreateInfo(

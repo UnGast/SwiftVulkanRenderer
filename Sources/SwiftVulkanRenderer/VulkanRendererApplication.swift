@@ -4,12 +4,13 @@ import HID
 import Vulkan
 import GfxMath
 
-public class VulkanRendererApplication {
+public class VulkanRendererApplication<R: VulkanRenderer> {
     let scene: Scene
-    public typealias CreateRendererCallback = (VulkanRendererConfig) throws -> VulkanRenderer
+    public typealias CreateRendererCallback = (VulkanRendererConfig) throws -> R
     let createRenderer: CreateRendererCallback
     var renderer: VulkanRenderer?
 
+    @Deferred var window: Window
     @Deferred var vulkanInstance: VkInstance
     @Deferred var windowSurface: VLKWindowSurface
     @Deferred var surface: VkSurfaceKHR
@@ -29,18 +30,20 @@ public class VulkanRendererApplication {
         self.scene = scene
         self.createRenderer = createRenderer
         
-        try createVLKInstance()
+        Platform.initialize()
+        print("Platform version: \(Platform.version)")
 
         let props = WindowProperties(title: "Title", frame: .init(0, 0, 800, 600))
 
-        let window = try Window(properties: props,
+        self.window = try Window(properties: props,
                                 surface: makeVLKSurface)
 
         guard let windowSurface = window.surface as? VLKWindowSurface else {
             fatalError("incorrect surface")
         }
         self.windowSurface = windowSurface
-        self.surface = windowSurface.instance
+        self.surface = windowSurface.surface
+        self.vulkanInstance = windowSurface.instance
 
         try pickPhysicalDevice()
 
@@ -57,7 +60,7 @@ public class VulkanRendererApplication {
         try createSwapchainImageViews()
     }
 
-    func createVLKInstance() throws {
+    func createVLKInstance() throws -> VkInstance {
         var hidSurfaceExtensions = VLKWindowSurface.getRequiredInstanceExtensionNames()
         var rawExtensionNames = hidSurfaceExtensions + [
             "VK_KHR_get_physical_device_properties2"
@@ -91,11 +94,11 @@ public class VulkanRendererApplication {
             throw VulkanApplicationError.couldNotCreateInstance
         }
 
-        self.vulkanInstance = instance
+        return instance
     }
 
     func makeVLKSurface(in window: Window) throws -> VLKWindowSurface {
-        return try VLKWindowSurface(in: window, instance: vulkanInstance)
+        return try VLKWindowSurface(in: window, instance: createVLKInstance())
     }
 
 	func pickPhysicalDevice() throws {
@@ -195,7 +198,7 @@ public class VulkanRendererApplication {
             }
         }
 
-        self.swapchainImageFormat = VK_FORMAT_B8G8R8A8_UNORM
+        self.swapchainImageFormat = R.drawTargetFormat
 
         var swapchainCreateInfo = VkSwapchainCreateInfoKHR(
             sType: VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -222,29 +225,7 @@ public class VulkanRendererApplication {
         vkCreateSwapchainKHR(device, &swapchainCreateInfo, nil, &swapchain)
         self.swapchain = swapchain!
         self.swapchainExtent = capabilities.maxImageExtent
-
-        /*self.swapchain = try Swapchain.create(
-        inDevice: device,
-        createInfo: SwapchainCreateInfo(
-            flags: .none,
-            surface: surface,
-            minImageCount: capabilities.minImageCount + 1,
-            imageFormat: surfaceFormat.format,
-            imageColorSpace: surfaceFormat.colorSpace,
-            imageExtent: capabilities.maxImageExtent,
-            imageArrayLayers: 1,
-            imageUsage: .colorAttachment,
-            imageSharingMode: .exclusive,
-            queueFamilyIndices: [],
-            preTransform: capabilities.currentTransform,
-            compositeAlpha: compositeAlpha,
-            presentMode: .immediate,
-            clipped: true,
-            oldSwapchain: nil
-        ))
-
-        self.swapchainImages = try self.swapchain.getSwapchainImages()*/
-    }
+   }
 
     func selectFormat() throws -> VkSurfaceFormatKHR {
         var formatsCount: UInt32 = 0
@@ -294,14 +275,22 @@ public class VulkanRendererApplication {
             baseMipLevel: 0,
             levelCount: 1,
             baseArrayLayer: 0,
-            layerCount: 1
-        )
+            layerCount: 1)
         )
 
         var imageView: VkImageView? = nil
         vkCreateImageView(device, &createInfo, nil, &imageView)
 
         return imageView!
+    }
+
+    func recreateSwapchain() throws {
+        swapchainImageViews.forEach { vkDestroyImageView(device, $0, nil) }
+        vkDestroySwapchainKHR(device, swapchain, nil)
+
+        try createSwapchain()
+        try getSwapchainImages()
+        try createSwapchainImageViews()
     }
 
     public func notifySceneContentsUpdated() throws {
@@ -318,13 +307,53 @@ public class VulkanRendererApplication {
     }
 
     func drawFrame() throws {
-        //try renderer?.draw()
+        guard let renderer = self.renderer else {
+            return
+        }
+
+        var acquireFenceInfo = VkFenceCreateInfo(
+            sType: VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            pNext: nil,
+            flags: 0
+        )
+        var acquireFence: VkFence? = nil
+        vkCreateFence(device, &acquireFenceInfo, nil, &acquireFence)
+
+        var currentSwapchainImageIndex: UInt32 = 0
+        var acquireResult = vkAcquireNextImageKHR(device, swapchain, 0, nil, acquireFence!, &currentSwapchainImageIndex)
+
+        if acquireResult == VK_ERROR_OUT_OF_DATE_KHR {
+            fatalError("swapchain out of date")
+        }
+        let currentImage = swapchainImages[Int(currentSwapchainImageIndex)]
+
+        var waitFences = [acquireFence]
+        vkWaitForFences(device, 1, waitFences, 1, 10000000)
+
+        try renderer.draw(imageIndex: Int(currentSwapchainImageIndex))
+
+        try renderer.transitionImageLayout(image: currentImage, format: swapchainImageFormat, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        vkDeviceWaitIdle(device)
+
+        var presentSwapchains = [Optional(swapchain)]
+        var presentImageIndices = [currentSwapchainImageIndex]
+        var presentResult = VkResult(rawValue: 0)
+        var presentInfo = VkPresentInfoKHR(
+            sType: VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            pNext: nil,
+            waitSemaphoreCount: 0,
+            pWaitSemaphores: nil,
+            swapchainCount: 1,
+            pSwapchains: presentSwapchains,
+            pImageIndices: presentImageIndices,
+            pResults: &presentResult
+        )
+        vkQueuePresentKHR(queue, &presentInfo)
+
+        vkDeviceWaitIdle(device)
     }
 
     public func run() throws {
-        Platform.initialize()
-        print("Platform version: \(Platform.version)")
-
         var event = Event()
         var quit = false
 
@@ -389,6 +418,8 @@ public class VulkanRendererApplication {
                 
                 case .window:
                     if case let .resizedTo(newSize) = event.window.action {
+                        try recreateSwapchain()
+
                         if renderer == nil {
                             try setupRenderer()
                         }

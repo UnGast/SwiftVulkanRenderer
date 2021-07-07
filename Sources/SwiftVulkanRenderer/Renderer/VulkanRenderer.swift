@@ -2,6 +2,8 @@ import Foundation
 import Vulkan
 
 public protocol VulkanRenderer {
+  static var drawTargetFormat: VkFormat { get }
+
   var physicalDevice: VkPhysicalDevice { get }
 	var device: VkDevice { get }
   var queue: VkQueue { get }
