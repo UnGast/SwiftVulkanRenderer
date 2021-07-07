@@ -4,7 +4,6 @@ import Vulkan
 public protocol VulkanRenderer {
   var physicalDevice: VkPhysicalDevice { get }
 	var device: VkDevice { get }
-	var swapchainExtent: VkExtent2D { get }
   var queue: VkQueue { get }
   var commandPool: VkCommandPool { get }
 
@@ -12,7 +11,7 @@ public protocol VulkanRenderer {
 	func updateSceneObjectMeta() throws
 	func updateSceneCameraUniforms() throws
 
-	func draw() throws
+  func draw(imageIndex: Int) throws
 }
 
 extension VulkanRenderer {

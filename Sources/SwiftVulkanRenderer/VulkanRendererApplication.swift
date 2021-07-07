@@ -6,14 +6,302 @@ import GfxMath
 
 public class VulkanRendererApplication {
     let scene: Scene
-    let createRenderer: (VkInstance, VkSurfaceKHR) throws -> VulkanRenderer
+    public typealias CreateRendererCallback = (VulkanRendererConfig) throws -> VulkanRenderer
+    let createRenderer: CreateRendererCallback
     var renderer: VulkanRenderer?
+
+    @Deferred var vulkanInstance: VkInstance
+    @Deferred var windowSurface: VLKWindowSurface
+    @Deferred var surface: VkSurfaceKHR
+    @Deferred public var physicalDevice: VkPhysicalDevice
+    @Deferred var queueFamilyIndex: UInt32
+    @Deferred public var device: VkDevice
+    @Deferred public var queue: VkQueue
+    @Deferred var swapchain: VkSwapchainKHR
+    @Deferred var swapchainImageFormat: VkFormat
+    @Deferred public var swapchainExtent: VkExtent2D
+    @Deferred var swapchainImages: [VkImage]
+    @Deferred var swapchainImageViews: [VkImageView]
 
     public var beforeFrame: ((Double) -> ())?
 
-    public init(createRenderer: @escaping (VkInstance, VkSurfaceKHR) throws -> VulkanRenderer, scene: Scene) {
+    public init(createRenderer: @escaping CreateRendererCallback, scene: Scene) throws {
         self.scene = scene
         self.createRenderer = createRenderer
+        
+        try createVLKInstance()
+
+        let props = WindowProperties(title: "Title", frame: .init(0, 0, 800, 600))
+
+        let window = try Window(properties: props,
+                                surface: makeVLKSurface)
+
+        guard let windowSurface = window.surface as? VLKWindowSurface else {
+            fatalError("incorrect surface")
+        }
+        self.windowSurface = windowSurface
+        self.surface = windowSurface.instance
+
+        try pickPhysicalDevice()
+
+        try getQueueFamilyIndex()
+
+        try createDevice()
+
+        try createQueue()
+
+        try createSwapchain()
+
+        try getSwapchainImages()
+
+        try createSwapchainImageViews()
+    }
+
+    func createVLKInstance() throws {
+        var hidSurfaceExtensions = VLKWindowSurface.getRequiredInstanceExtensionNames()
+        var rawExtensionNames = hidSurfaceExtensions + [
+            "VK_KHR_get_physical_device_properties2"
+        ]
+
+        // strdup copies the string passed in and returns a pointer to copy; copy not managed by swift -> not deallocated
+        var enabledLayerNames = [UnsafePointer<CChar>(strdup("VK_LAYER_KHRONOS_validation"))]
+
+        var extNames = rawExtensionNames.map { UnsafePointer<CChar>(strdup($0)) }
+
+        var applicationInfo = VkApplicationInfo()
+        applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO
+        applicationInfo.pNext = nil
+        applicationInfo.apiVersion = makeApiVersion(variant: 0, major: 1, minor: 2, patch: 0)
+
+        var createInfo = VkInstanceCreateInfo(
+            sType: VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            pNext: nil,
+            flags: 0,
+            pApplicationInfo: &applicationInfo,
+            enabledLayerCount: UInt32(enabledLayerNames.count),
+            ppEnabledLayerNames: enabledLayerNames,
+            enabledExtensionCount: UInt32(rawExtensionNames.count),
+            ppEnabledExtensionNames: &extNames
+        )
+
+        var instanceOpt: VkInstance?
+        let result = vkCreateInstance(&createInfo, nil, &instanceOpt)
+
+        guard let instance = instanceOpt, result == VK_SUCCESS else {
+            throw VulkanApplicationError.couldNotCreateInstance
+        }
+
+        self.vulkanInstance = instance
+    }
+
+    func makeVLKSurface(in window: Window) throws -> VLKWindowSurface {
+        return try VLKWindowSurface(in: window, instance: vulkanInstance)
+    }
+
+	func pickPhysicalDevice() throws {
+        var deviceCount: UInt32 = 0
+        vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, nil)
+        var devices = Array(repeating: Optional<VkPhysicalDevice>.none, count: Int(deviceCount))
+        vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, &devices)
+        self.physicalDevice = devices[0]!
+    }
+
+    func getQueueFamilyIndex() throws {
+        var queueFamilyCount = UInt32(0)
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nil)
+        var queueFamilyProperties = Array(repeating: VkQueueFamilyProperties(), count: Int(queueFamilyCount))
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, &queueFamilyProperties)
+
+        for (index, properties) in queueFamilyProperties.enumerated() {
+            var supported = UInt32(0)
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, UInt32(index), surface, &supported)
+
+            if supported > 0 {
+                self.queueFamilyIndex = UInt32(index)
+                return
+            }
+        }
+
+        fatalError("no suitable queue family found")
+    }
+
+    func createDevice() throws {
+        var queuePriorities = [Float(1.0)]
+        var queueCreateInfo = VkDeviceQueueCreateInfo(
+            sType: VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            pNext: nil,
+            flags: 0,
+            queueFamilyIndex: queueFamilyIndex,
+            queueCount: 1,
+            pQueuePriorities: queuePriorities)
+
+        var physicalDeviceFeatures = VkPhysicalDeviceFeatures()
+        physicalDeviceFeatures.samplerAnisotropy = 1
+
+        var extensions = [
+            UnsafePointer(strdup("VK_KHR_swapchain")),
+            UnsafePointer(strdup("VK_EXT_descriptor_indexing")),
+            UnsafePointer(strdup("VK_KHR_maintenance3"))
+        ]
+        #if os(macOS)
+        extensions.append(UnsafePointer(strdup("VK_KHR_portability_subset")))
+        #endif
+
+        var features = VkPhysicalDeviceFeatures()
+        features.multiDrawIndirect = 1
+
+        var descriptorIndexingFeatures = VkPhysicalDeviceDescriptorIndexingFeatures()
+        descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES
+        descriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = 1
+        descriptorIndexingFeatures.runtimeDescriptorArray = 1
+
+        var deviceCreateInfo = VkDeviceCreateInfo(
+            sType: VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            pNext: &descriptorIndexingFeatures,
+            flags: 0,
+            queueCreateInfoCount: 1,
+            pQueueCreateInfos: &queueCreateInfo,
+            enabledLayerCount: 0,
+            ppEnabledLayerNames: nil,
+            enabledExtensionCount: UInt32(extensions.count),
+            ppEnabledExtensionNames: extensions,
+            pEnabledFeatures: &features
+            )
+
+        var device: VkDevice? = nil
+        vkCreateDevice(physicalDevice, &deviceCreateInfo, nil, &device)
+        self.device = device!
+    }
+
+    func createQueue() throws {
+        var queues = [VkQueue?](repeating: VkQueue(bitPattern: 0), count: 1)
+        vkGetDeviceQueue(device, UInt32(queueFamilyIndex), 0, &queues)
+        self.queue = queues[0]!
+    }
+
+    func createSwapchain() throws {
+        var capabilities = VkSurfaceCapabilitiesKHR()
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities)
+        let surfaceFormat = try selectFormat()
+
+        var compositeAlpha: VkCompositeAlphaFlagBitsKHR = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR
+        let desiredCompositeAlpha =
+            [compositeAlpha, VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR]
+
+        for desired in desiredCompositeAlpha {
+            if capabilities.supportedCompositeAlpha & desired.rawValue == desired.rawValue {
+                compositeAlpha = desired
+                break
+            }
+        }
+
+        self.swapchainImageFormat = VK_FORMAT_B8G8R8A8_UNORM
+
+        var swapchainCreateInfo = VkSwapchainCreateInfoKHR(
+            sType: VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            pNext: nil,
+            flags: 0,
+            surface: surface,
+            minImageCount: capabilities.minImageCount + 1,
+            imageFormat: swapchainImageFormat,
+            imageColorSpace: surfaceFormat.colorSpace,
+            imageExtent: capabilities.maxImageExtent,
+            imageArrayLayers: 1,
+            imageUsage: VK_IMAGE_USAGE_STORAGE_BIT.rawValue,
+            imageSharingMode: VK_SHARING_MODE_EXCLUSIVE,
+            queueFamilyIndexCount: 0,
+            pQueueFamilyIndices: [],
+            preTransform: capabilities.currentTransform,
+            compositeAlpha: compositeAlpha,
+            presentMode: VK_PRESENT_MODE_IMMEDIATE_KHR,
+            clipped: 1,
+            oldSwapchain: nil
+            )
+
+        var swapchain: VkSwapchainKHR? = nil
+        vkCreateSwapchainKHR(device, &swapchainCreateInfo, nil, &swapchain)
+        self.swapchain = swapchain!
+        self.swapchainExtent = capabilities.maxImageExtent
+
+        /*self.swapchain = try Swapchain.create(
+        inDevice: device,
+        createInfo: SwapchainCreateInfo(
+            flags: .none,
+            surface: surface,
+            minImageCount: capabilities.minImageCount + 1,
+            imageFormat: surfaceFormat.format,
+            imageColorSpace: surfaceFormat.colorSpace,
+            imageExtent: capabilities.maxImageExtent,
+            imageArrayLayers: 1,
+            imageUsage: .colorAttachment,
+            imageSharingMode: .exclusive,
+            queueFamilyIndices: [],
+            preTransform: capabilities.currentTransform,
+            compositeAlpha: compositeAlpha,
+            presentMode: .immediate,
+            clipped: true,
+            oldSwapchain: nil
+        ))
+
+        self.swapchainImages = try self.swapchain.getSwapchainImages()*/
+    }
+
+    func selectFormat() throws -> VkSurfaceFormatKHR {
+        var formatsCount: UInt32 = 0
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, nil)
+        var formats = Array(repeating: VkSurfaceFormatKHR(), count: Int(formatsCount))
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, &formats)
+
+        for format in formats {
+            if format.format == VK_FORMAT_B8G8R8A8_SRGB {
+                return format
+            }
+        }
+
+        return formats[0]
+    }
+
+    func getSwapchainImages() throws {
+        var count: UInt32 = 0
+        vkGetSwapchainImagesKHR(device, swapchain, &count, nil)
+        var images = [VkImage?](repeating: VkImage(bitPattern: 0), count: Int(count))
+        vkGetSwapchainImagesKHR(device, swapchain, &count, &images)
+        self.swapchainImages = images.map { $0! }
+    }
+
+    func createSwapchainImageViews() throws {
+        self.swapchainImageViews = try swapchainImages.map {
+            try createSwapchainImageView(image: $0, format: swapchainImageFormat, aspectFlags: VK_IMAGE_ASPECT_COLOR_BIT)
+        }
+    }
+
+    func createSwapchainImageView(image: VkImage, format: VkFormat, aspectFlags: VkImageAspectFlagBits) throws -> VkImageView {
+        var createInfo = VkImageViewCreateInfo(
+        sType: VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        pNext: nil,
+        flags: 0,
+        image: image,
+        viewType: VK_IMAGE_VIEW_TYPE_2D,
+        format: format,
+        components: VkComponentMapping(
+            r: VK_COMPONENT_SWIZZLE_IDENTITY,
+            g: VK_COMPONENT_SWIZZLE_IDENTITY,
+            b: VK_COMPONENT_SWIZZLE_IDENTITY,
+            a: VK_COMPONENT_SWIZZLE_IDENTITY
+        ),
+        subresourceRange: VkImageSubresourceRange(
+            aspectMask: aspectFlags.rawValue,
+            baseMipLevel: 0,
+            levelCount: 1,
+            baseArrayLayer: 0,
+            layerCount: 1
+        )
+        )
+
+        var imageView: VkImageView? = nil
+        vkCreateImageView(device, &createInfo, nil, &imageView)
+
+        return imageView!
     }
 
     public func notifySceneContentsUpdated() throws {
@@ -29,71 +317,16 @@ public class VulkanRendererApplication {
         (variant << 29) | (major << 22) | (minor << 12) | (patch)
     }
 
+    func drawFrame() throws {
+        //try renderer?.draw()
+    }
+
     public func run() throws {
         Platform.initialize()
         print("Platform version: \(Platform.version)")
 
-        // either use a custom surface sub-class
-        // or use the default implementation directly
-        // let surface = CPUSurface()
-
-        enum VulkanApplicationError: Error {
-            case couldNotCreateInstance
-        }
-
-        func createVLKInstance() throws -> VkInstance {
-            var hidSurfaceExtensions = VLKWindowSurface.getRequiredInstanceExtensionNames()
-            var rawExtensionNames = hidSurfaceExtensions + [
-                "VK_KHR_get_physical_device_properties2"
-            ]
-
-            // strdup copies the string passed in and returns a pointer to copy; copy not managed by swift -> not deallocated
-            var enabledLayerNames = [UnsafePointer<CChar>(strdup("VK_LAYER_KHRONOS_validation"))]
-
-            var extNames = rawExtensionNames.map { UnsafePointer<CChar>(strdup($0)) }
-
-            var applicationInfo = VkApplicationInfo()
-            applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO
-            applicationInfo.pNext = nil
-            applicationInfo.apiVersion = makeApiVersion(variant: 0, major: 1, minor: 2, patch: 0)
-
-            var createInfo = VkInstanceCreateInfo(
-                sType: VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                pNext: nil,
-                flags: 0,
-                pApplicationInfo: &applicationInfo,
-                enabledLayerCount: UInt32(enabledLayerNames.count),
-                ppEnabledLayerNames: enabledLayerNames,
-                enabledExtensionCount: UInt32(rawExtensionNames.count),
-                ppEnabledExtensionNames: &extNames
-            )
-
-            var instanceOpt: VkInstance?
-            let result = vkCreateInstance(&createInfo, nil, &instanceOpt)
-
-            guard let instance = instanceOpt, result == VK_SUCCESS else {
-                throw VulkanApplicationError.couldNotCreateInstance
-            }
-
-            return instance
-        }
-
-        func makeVLKSurface(in window: Window) throws -> VLKWindowSurface {
-            let vulkanInstance = try createVLKInstance()
-            return try VLKWindowSurface(in: window, instance: vulkanInstance)
-        }
-
-        let props = WindowProperties(title: "Title", frame: .init(0, 0, 800, 600))
-
-        let window = try Window(properties: props,
-                                surface: makeVLKSurface)
-
         var event = Event()
         var quit = false
-
-        guard let surface = window.surface as? VLKWindowSurface else {
-            fatalError("incorrect surface")
-        }
 
         var frameCount = 0
 
@@ -105,7 +338,14 @@ public class VulkanRendererApplication {
         ]
 
         func setupRenderer() throws {
-            renderer = try createRenderer(surface.instance, surface.surface)
+            renderer = try createRenderer(VulkanRendererConfig(
+                physicalDevice: physicalDevice,
+                device: device,
+                queueFamilyIndex: queueFamilyIndex,
+                queue: queue,
+                drawTargetExtent: swapchainExtent,
+                drawTargetImages: swapchainImages,
+                drawTargetImageViews: swapchainImageViews))
             try renderer?.updateSceneContent()
             try renderer?.updateSceneObjectMeta()
             try renderer?.updateSceneCameraUniforms()
@@ -136,7 +376,7 @@ public class VulkanRendererApplication {
             }
 
             try renderer?.updateSceneCameraUniforms()
-            try renderer?.draw()
+            try drawFrame()
 
             frameCount += 1
 
@@ -211,5 +451,9 @@ public class VulkanRendererApplication {
         #endif
 
         Platform.quit()
+    }
+
+    enum VulkanApplicationError: Error {
+        case couldNotCreateInstance
     }
 }

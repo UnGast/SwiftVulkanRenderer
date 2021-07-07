@@ -886,6 +886,10 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
     return commandBuffer
   }
 
+  public func draw(imageIndex: Int) throws {
+    fatalError("not implemented")
+  }
+
   public func draw() throws {
     var acquireFenceInfo = VkFenceCreateInfo(
       sType: VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
