@@ -115,8 +115,6 @@ class MaterialSystem {
 
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)
     public func updateGPUData() throws {
-        print("UPDATE GPU")
         try materialDataBuffer.store(materialDrawInfos, strideMultiple16: false)
-        print("FINISH UPDATE GU", materialDrawInfos)
     }
 }

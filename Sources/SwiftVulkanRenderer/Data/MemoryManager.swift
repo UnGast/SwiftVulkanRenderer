@@ -83,7 +83,7 @@ public class MemoryManager {
 
     let imageView = createImageView(image: image, format: format)
 
-    return ManagedGPUImage(memory: memory, memoryRange: memoryRange, image: image, imageView: imageView)
+    return ManagedGPUImage(memory: memory, memoryRange: memoryRange, device: renderer.device, image: image, imageView: imageView)
   }
 
   private func createImageView(image: VkImage, format: VkFormat) -> VkImageView {

@@ -3,6 +3,7 @@ import Vulkan
 public class ManagedGPUImage {
     unowned let memory: ManagedGPUMemory
     let memoryRange: Range<VkDeviceSize>
+    var device: VkDevice
     public var image: VkImage
     public var imageView: VkImageView
     var destroyed: Bool = false
@@ -10,11 +11,13 @@ public class ManagedGPUImage {
     init(
         memory: ManagedGPUMemory,
         memoryRange: Range<VkDeviceSize>,
+        device: VkDevice,
         image: VkImage,
         imageView: VkImageView
     ) {
         self.memory = memory
         self.memoryRange = memoryRange
+        self.device = device
         self.image = image
         self.imageView = imageView
     }
@@ -90,6 +93,8 @@ public class ManagedGPUImage {
 
     public func destroy() {
         destroyed = true
+        vkDestroyImageView(device, imageView, nil)
+        vkDestroyImage(device, image, nil)
     }
 
     deinit {
