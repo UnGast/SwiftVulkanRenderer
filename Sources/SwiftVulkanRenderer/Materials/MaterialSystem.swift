@@ -90,10 +90,27 @@ class MaterialSystem {
     }
 
     func removeMaterial(id: ObjectIdentifier) throws {
-        let index = materialDrawInfoIndices[id]!
+        let materialDrawInfoIndex = materialDrawInfoIndices[id]!
         materialDrawInfoIndices[id] = nil
-        let materialDrawInfo = materialDrawInfos[index]
+
+        let materialDrawInfo = materialDrawInfos[materialDrawInfoIndex]
         materialImages[Int(materialDrawInfo.textureIndex)].destroy()
+
+        for i in 0..<materialDrawInfos.count {
+            if materialDrawInfos[i].textureIndex > materialDrawInfo.textureIndex {
+                materialDrawInfos[i].textureIndex -= 1
+            }
+        }
+
+        materialImages.remove(at: Int(materialDrawInfo.textureIndex))
+
+        for (key, otherMaterialDrawInfoIndex) in materialDrawInfoIndices {
+            if otherMaterialDrawInfoIndex > materialDrawInfoIndex {
+                materialDrawInfoIndices[key]! -= 1
+            }
+        }
+
+        materialDrawInfos.remove(at: materialDrawInfoIndex)
     }
 
     /// sync material draw information with gpu (image data is already uploaded as soon as new material is registered)

@@ -61,6 +61,7 @@ extension RaytracingVulkanRenderer {
       for previousExistingMaterialId in previousExistingMaterialIds {
         if !currentExistingMaterialIds.contains(previousExistingMaterialId) {
           try renderer.materialSystem.removeMaterial(id: previousExistingMaterialId)
+          needObjectDrawInfoUpdate = true
         }
       }
 
