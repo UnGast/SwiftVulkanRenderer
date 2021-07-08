@@ -75,9 +75,9 @@ public class MemoryManager {
    let (image, memoryRange) = try createImage(
       width: width,
       height: height,
-      format: VK_FORMAT_R8G8B8A8_SRGB,
+      format: format,
       tiling: VK_IMAGE_TILING_OPTIMAL,
-      usage: VkImageUsageFlagBits(rawValue: VK_IMAGE_USAGE_TRANSFER_DST_BIT.rawValue | VK_IMAGE_USAGE_SAMPLED_BIT.rawValue),
+      usage: usage,
       properties: VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     )
 
