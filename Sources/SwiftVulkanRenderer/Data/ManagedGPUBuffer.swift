@@ -58,6 +58,11 @@ public class ManagedGPUBuffer {
         dataPointer.copyMemory(from: image.getData(), byteCount: Int(image.width * image.height * 4))
     }
 
+    public func getData<T>(count: Int) -> [T] {
+        let buffer = UnsafeBufferPointer(start: dataPointer.assumingMemoryBound(to: T.self), count: count)
+        return Array(buffer)
+    }
+
     public func copy(from srcBuffer: ManagedGPUBuffer, srcRange: Range<Int>, dstOffset: Int, commandBuffer: VkCommandBuffer) {
         var region = VkBufferCopy(
             srcOffset: VkDeviceSize(srcRange.lowerBound),
@@ -65,5 +70,27 @@ public class ManagedGPUBuffer {
             size: VkDeviceSize(srcRange.count)
         )
         vkCmdCopyBuffer(commandBuffer, srcBuffer.buffer, buffer, 1, &region)
+    }
+
+    public func copy(image: ManagedGPUImage, extent: VkExtent2D, commandBuffer: VkCommandBuffer) {
+        var region = VkBufferImageCopy(
+            bufferOffset: 0,
+            bufferRowLength: 0,
+            bufferImageHeight: 0,
+            imageSubresource: VkImageSubresourceLayers(
+                aspectMask: VK_IMAGE_ASPECT_COLOR_BIT.rawValue,
+                mipLevel: 0,
+                baseArrayLayer: 0,
+                layerCount: 1
+            ),
+            imageOffset: VkOffset3D(x: 0, y: 0, z: 0),
+            imageExtent: VkExtent3D(
+                width: extent.width,
+                height: extent.height,
+                depth: 1
+            )
+        )
+
+        vkCmdCopyImageToBuffer(commandBuffer, image.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, 1, &region)
     }
 }
