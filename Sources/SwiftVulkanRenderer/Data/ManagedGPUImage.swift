@@ -1,6 +1,6 @@
 import Vulkan
 
-class ManagedGPUImage {
+public class ManagedGPUImage {
     unowned let memory: ManagedGPUMemory
     let memoryRange: Range<VkDeviceSize>
     var image: VkImage

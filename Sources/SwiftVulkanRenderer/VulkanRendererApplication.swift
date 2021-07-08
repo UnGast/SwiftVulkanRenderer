@@ -302,10 +302,6 @@ public class VulkanRendererApplication<R: VulkanRenderer> {
         try renderer?.updateSceneObjectMeta()
     }
 
-    func makeApiVersion(variant: UInt32, major: UInt32, minor: UInt32, patch: UInt32) -> UInt32 {
-        (variant << 29) | (major << 22) | (minor << 12) | (patch)
-    }
-
     func drawFrame() throws {
         guard let renderer = self.renderer else {
             return

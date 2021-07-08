@@ -71,7 +71,7 @@ public class MemoryManager {
     return ManagedGPUBuffer(memory: memory, buffer: buffer!, range: memoryRange)
   }
 
-  func getImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkImageTiling, usage: VkImageUsageFlagBits) throws -> ManagedGPUImage {
+  public func getImage(width: UInt32, height: UInt32, format: VkFormat, tiling: VkImageTiling, usage: VkImageUsageFlagBits) throws -> ManagedGPUImage {
    let (image, memoryRange) = try createImage(
       width: width,
       height: height,
