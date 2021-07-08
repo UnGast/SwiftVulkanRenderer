@@ -326,7 +326,7 @@ public class VulkanRendererApplication<R: VulkanRenderer> {
         var waitFences = [acquireFence]
         vkWaitForFences(device, 1, waitFences, 1, 10000000)
 
-        try renderer.draw(imageIndex: Int(currentSwapchainImageIndex))
+        try renderer.draw(targetIndex: Int(currentSwapchainImageIndex))
 
         try renderer.transitionImageLayout(image: currentImage, format: swapchainImageFormat, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
         vkDeviceWaitIdle(device)
@@ -367,10 +367,9 @@ public class VulkanRendererApplication<R: VulkanRenderer> {
                 physicalDevice: physicalDevice,
                 device: device,
                 queueFamilyIndex: queueFamilyIndex,
-                queue: queue,
-                drawTargetExtent: swapchainExtent,
-                drawTargetImages: swapchainImages,
-                drawTargetImageViews: swapchainImageViews))
+                queue: queue))
+
+            try renderer?.setupDrawTargets(extent: swapchainExtent, images: swapchainImages, imageViews: swapchainImageViews)
             try renderer?.updateSceneContent()
             try renderer?.updateSceneObjectMeta()
             try renderer?.updateSceneCameraUniforms()

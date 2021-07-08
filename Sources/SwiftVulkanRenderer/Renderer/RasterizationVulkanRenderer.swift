@@ -81,6 +81,10 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
     try createCommandPool()
   }
 
+  public func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView]) throws {
+    fatalError("not implemented")
+  }
+
 	public func updateSceneContent() throws {
     try sceneManager.updateSceneContent()
   }
@@ -888,7 +892,7 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
     return commandBuffer
   }
 
-  public func draw(imageIndex: Int) throws {
+  public func draw(targetIndex: Int) throws {
     fatalError("not implemented")
   }
 

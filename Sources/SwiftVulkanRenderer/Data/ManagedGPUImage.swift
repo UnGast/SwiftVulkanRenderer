@@ -3,8 +3,8 @@ import Vulkan
 public class ManagedGPUImage {
     unowned let memory: ManagedGPUMemory
     let memoryRange: Range<VkDeviceSize>
-    var image: VkImage
-    var imageView: VkImageView
+    public var image: VkImage
+    public var imageView: VkImageView
     var destroyed: Bool = false
 
     init(

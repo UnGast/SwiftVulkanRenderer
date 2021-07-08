@@ -11,16 +11,10 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
   let scene: Scene
 
-  let drawTargetExtent: VkExtent2D
-  let drawTargetImages: [VkImage]
-  let drawTargetImageViews: [VkImageView]
-
-  /*@Deferred 
-  @Deferred var swapchain: VkSwapchainKHR
-  @Deferred var swapchainImageFormat: VkFormat
-  @Deferred public var drawTargetExtent: VkExtent2D
+  @Deferred var drawTargetExtent: VkExtent2D
   @Deferred var drawTargetImages: [VkImage]
-  @Deferred var drawTargetImageViews: [VkImageView]*/
+  @Deferred var drawTargetImageViews: [VkImageView]
+
   @Deferred var textureSampler: VkSampler
 
   @Deferred var descriptorPool: VkDescriptorPool
@@ -47,9 +41,6 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     self.queueFamilyIndex = config.queueFamilyIndex
     self.queue = config.queue
     self.scene = scene
-    self.drawTargetExtent = config.drawTargetExtent
-    self.drawTargetImages = config.drawTargetImages
-    self.drawTargetImageViews = config.drawTargetImageViews
 
     try createTextureSampler()
 
@@ -58,6 +49,12 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     materialSystem = try MaterialSystem(renderer: self)
 
     sceneManager = try SceneManager(renderer: self)
+  } 
+
+  public func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView]) throws {
+    self.drawTargetExtent = extent
+    self.drawTargetImages = images
+    self.drawTargetImageViews = imageViews
 
     try createDescriptorPool()
 
@@ -224,7 +221,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       // correctly for some reason
       vkUpdateDescriptorSets(device, 1, &write, 0, nil)
     }
- }
+  }
 
   func createSceneDescriptorSetLayout() throws {
     var samplers = [Optional(textureSampler)]
@@ -497,15 +494,15 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     return commandBuffer
   }
 
-  public func draw(imageIndex: Int) throws {
+  public func draw(targetIndex: Int) throws {
     try sceneManager.syncUpdate()
     vkDeviceWaitIdle(device)
 
-    let currentImage = drawTargetImages[Int(imageIndex)]
+    let currentImage = drawTargetImages[Int(targetIndex)]
     try transitionImageLayout(image: currentImage, format: Self.drawTargetFormat, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_GENERAL)
     vkDeviceWaitIdle(device)
 
-    let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(imageIndex))
+    let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(targetIndex))
 
     var submitCommandBuffers = [Optional(commandBuffer)]
     var submitWaitSemaphores = self.nextDrawSubmitWaits.map { $0.0 } as! [Optional<VkSemaphore>]

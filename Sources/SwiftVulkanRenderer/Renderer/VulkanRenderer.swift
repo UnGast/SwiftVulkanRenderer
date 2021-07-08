@@ -9,11 +9,13 @@ public protocol VulkanRenderer {
   var queue: VkQueue { get }
   var commandPool: VkCommandPool { get }
 
+  func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView]) throws
+
 	func updateSceneContent() throws
 	func updateSceneObjectMeta() throws
 	func updateSceneCameraUniforms() throws
 
-  func draw(imageIndex: Int) throws
+  func draw(targetIndex: Int) throws
 }
 
 extension VulkanRenderer {

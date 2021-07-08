@@ -64,7 +64,6 @@ let application = try VulkanRendererApplication(createRenderer: {
 	try RaytracingVulkanRenderer(scene: scene, config: $0)
 }, scene: scene) 
 
-
 DispatchQueue.global().async {
 	var nextX = Float(0)
 	while true {
