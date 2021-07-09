@@ -95,6 +95,7 @@ public class ManagedGPUImage {
         destroyed = true
         vkDestroyImageView(device, imageView, nil)
         vkDestroyImage(device, image, nil)
+        memory.free(range: memoryRange)
     }
 
     deinit {
