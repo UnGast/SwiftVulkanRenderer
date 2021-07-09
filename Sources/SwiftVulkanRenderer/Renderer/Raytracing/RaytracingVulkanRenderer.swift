@@ -138,7 +138,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     var createInfo = VkDescriptorPoolCreateInfo(
       sType: VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       pNext: nil,
-      flags: 0,
+      flags: VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT.rawValue,
       maxSets: UInt32(drawTargetImages.count) + 1,
       poolSizeCount: UInt32(poolSizes.count),
       pPoolSizes: &poolSizes
@@ -429,6 +429,8 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   func recreateComputePipeline() throws {
     vkDestroyPipeline(device, computePipeline, nil)
     vkDestroyDescriptorSetLayout(device, sceneDescriptorSetLayout, nil)
+    var descriptorSets = [Optional(sceneDescriptorSet)]
+    vkFreeDescriptorSets(device, descriptorPool, 1, descriptorSets)
     try createSceneDescriptorSetLayout()
     try createSceneDescriptorSet()
     try createComputePipeline()
