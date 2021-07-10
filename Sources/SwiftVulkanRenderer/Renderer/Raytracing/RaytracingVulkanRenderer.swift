@@ -234,7 +234,9 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   func createSceneDescriptorSetLayout() throws {
-    var samplers = [Optional(textureSampler)]
+    var samplers = UnsafeMutableBufferPointer<VkSampler?>.allocate(capacity: 1)
+    samplers[0] = textureSampler
+
     var bindings: [VkDescriptorSetLayoutBinding] = [
       VkDescriptorSetLayoutBinding(
         binding: 0,
@@ -269,22 +271,26 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLER,
         descriptorCount: 1,
         stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
-        pImmutableSamplers: samplers
+        pImmutableSamplers: UnsafePointer(samplers.baseAddress!)
       )
     ]
 
-    var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
-      sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-      pNext: nil,
-      flags: 0,
-      bindingCount: UInt32(bindings.count),
-      pBindings: bindings
-    )
+    withExtendedLifetime(bindings) {
+      var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
+        sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        pNext: nil,
+        flags: 0,
+        bindingCount: UInt32(bindings.count),
+        pBindings: bindings
+      )
 
-    var descriptorSetLayout: VkDescriptorSetLayout? = nil
-    vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nil, &descriptorSetLayout)
+      var descriptorSetLayout = UnsafeMutablePointer<VkDescriptorSetLayout?>.allocate(capacity: 1)
+      vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nil, descriptorSetLayout)
 
-    self.sceneDescriptorSetLayout = descriptorSetLayout!
+      self.sceneDescriptorSetLayout = descriptorSetLayout.pointee!
+    }
+
+    samplers.deallocate()
   }
 
   func createSceneDescriptorSet() throws {
@@ -395,22 +401,25 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       pSpecializationInfo: nil
     )
 
-    var setLayouts = [Optional(framebufferDescriptorSetLayout), Optional(sceneDescriptorSetLayout)]
-    var pushConstantRanges = [
-      VkPushConstantRange(
-        stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
-        offset: 0,
-        size: UInt32(PushConstantBlock.serializedSize)
-      )
-    ]
+    var setLayouts = UnsafeMutableBufferPointer<VkDescriptorSetLayout?>.allocate(capacity: 2)
+    setLayouts[0] = Optional(framebufferDescriptorSetLayout)
+    setLayouts[1] = Optional(sceneDescriptorSetLayout)
+
+    var pushConstantRanges = UnsafeMutableBufferPointer<VkPushConstantRange>.allocate(capacity: 1)
+    pushConstantRanges[0] = VkPushConstantRange(
+      stageFlags: VK_SHADER_STAGE_COMPUTE_BIT.rawValue,
+      offset: 0,
+      size: UInt32(PushConstantBlock.serializedSize)
+    )
+
     var pipelineLayoutInfo = VkPipelineLayoutCreateInfo(
       sType: VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       pNext: nil,
       flags: 0,
       setLayoutCount: UInt32(setLayouts.count),
-      pSetLayouts: setLayouts,
+      pSetLayouts: UnsafePointer(setLayouts.baseAddress!),
       pushConstantRangeCount: UInt32(pushConstantRanges.count),
-      pPushConstantRanges: pushConstantRanges
+      pPushConstantRanges: UnsafePointer(pushConstantRanges.baseAddress!)
     )
 
     var pipelineLayoutOpt: VkPipelineLayout? = nil
@@ -436,6 +445,9 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     self.computePipeline = pipeline!
     self.computePipelineLayout = pipelineLayout
+
+    setLayouts.deallocate()
+    pushConstantRanges.deallocate()
   }
 
   func recreateComputePipeline() throws {
@@ -496,7 +508,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     let pushConstantSize = PushConstantBlock.serializedSize
     let pushConstantData = pushConstant.serializedData
     pushConstantData.withUnsafeBytes {
-      vkCmdPushConstants(commandBuffer, computePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT.rawValue, 0, UInt32(pushConstantSize), $0.baseAddress)
+      vkCmdPushConstants(commandBuffer, computePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT.rawValue, 0, UInt32(pushConstantSize), $0.baseAddress!)
     }
 
     var descriptorSets = [Optional(framebufferDescriptorSets[framebufferIndex]), Optional(sceneDescriptorSet)]
