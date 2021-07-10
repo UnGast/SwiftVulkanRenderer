@@ -1,6 +1,6 @@
 import Vulkan
 
-extension VkSemaphore {
+public struct VulkanSemaphore {
   public static func create(device: VkDevice) -> VkSemaphore {
     var createInfo = VkSemaphoreCreateInfo(
       sType: VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,

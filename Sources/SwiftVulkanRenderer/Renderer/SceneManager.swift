@@ -58,9 +58,9 @@ public class SceneManager {
     materialSystem = try MaterialSystem(renderer: renderer)
 
     renderer.currentDrawFinishSemaphoreCallbacks.append { [unowned self] in
-      sceneContentWaitSemaphore = VkSemaphore.create(device: renderer.device)
-      objectInfosWaitSemaphore = VkSemaphore.create(device: renderer.device)
-      uniformWaitSemaphore = VkSemaphore.create(device: renderer.device)
+      sceneContentWaitSemaphore = VulkanSemaphore.create(device: renderer.device)
+      objectInfosWaitSemaphore = VulkanSemaphore.create(device: renderer.device)
+      uniformWaitSemaphore = VulkanSemaphore.create(device: renderer.device)
       return [sceneContentWaitSemaphore!, objectInfosWaitSemaphore!, uniformWaitSemaphore!]
     }
   }
@@ -109,7 +109,7 @@ public class SceneManager {
     
     let waitSemaphores = sceneContentWaitSemaphore != nil ? [sceneContentWaitSemaphore!] : []
 
-    let signalSemaphore: VkSemaphore = VkSemaphore.create(device: renderer.device)
+    let signalSemaphore: VkSemaphore = VulkanSemaphore.create(device: renderer.device)
     renderer.nextDrawSubmitWaits.append((signalSemaphore, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT.rawValue))
 
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, waitSemaphores: waitSemaphores, signalSemaphores: [signalSemaphore])
@@ -131,7 +131,7 @@ public class SceneManager {
 
     let waitSemaphores = objectInfosWaitSemaphore != nil ? [objectInfosWaitSemaphore!] : []
 
-    let signalSemaphore: VkSemaphore = VkSemaphore.create(device: renderer.device)
+    let signalSemaphore: VkSemaphore = VulkanSemaphore.create(device: renderer.device)
     renderer.nextDrawSubmitWaits.append((signalSemaphore, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT.rawValue))
 
     try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, waitSemaphores: waitSemaphores, signalSemaphores: [signalSemaphore])

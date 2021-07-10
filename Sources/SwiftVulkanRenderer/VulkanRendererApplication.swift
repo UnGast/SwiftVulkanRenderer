@@ -326,7 +326,7 @@ public class VulkanRendererApplication<R: VulkanRenderer> {
         var waitFences = [acquireFence]
         vkWaitForFences(device, 1, waitFences, 1, 10000000)
 
-        try renderer.draw(targetIndex: Int(currentSwapchainImageIndex))
+        try renderer.draw(targetIndex: Int(currentSwapchainImageIndex), finishFence: nil)
 
         try renderer.transitionImageLayout(image: currentImage, format: swapchainImageFormat, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
         vkDeviceWaitIdle(device)

@@ -496,13 +496,10 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     return commandBuffer
   }
 
-  public func draw(targetIndex: Int) throws {
+  public func draw(targetIndex: Int, finishFence: VkFence?) throws {
     try sceneManager.syncUpdate()
-    vkDeviceWaitIdle(device)
 
     let currentImage = drawTargetImages[Int(targetIndex)]
-    try transitionImageLayout(image: currentImage, format: Self.drawTargetFormat, oldLayout: VK_IMAGE_LAYOUT_UNDEFINED, newLayout: VK_IMAGE_LAYOUT_GENERAL)
-    vkDeviceWaitIdle(device)
 
     let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(targetIndex))
 
@@ -524,9 +521,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       signalSemaphoreCount: UInt32(submitSignalSemaphores.count),
       pSignalSemaphores: submitSignalSemaphores
     )
-    vkQueueSubmit(queue, 1, &submitInfo, nil)
-
-    vkDeviceWaitIdle(device)
+    vkQueueSubmit(queue, 1, &submitInfo, finishFence)
 
     /*try sceneManager.syncUpdate()
 

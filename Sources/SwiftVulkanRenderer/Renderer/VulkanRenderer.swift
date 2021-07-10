@@ -15,7 +15,7 @@ public protocol VulkanRenderer {
 	func updateSceneObjectMeta() throws
 	func updateSceneCameraUniforms() throws
 
-  func draw(targetIndex: Int) throws
+  func draw(targetIndex: Int, finishFence: VkFence?) throws
 }
 
 extension VulkanRenderer {

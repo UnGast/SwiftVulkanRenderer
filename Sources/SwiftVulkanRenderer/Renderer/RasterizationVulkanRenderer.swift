@@ -892,7 +892,7 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
     return commandBuffer
   }
 
-  public func draw(targetIndex: Int) throws {
+  public func draw(targetIndex: Int, finishFence: VkFence?) throws {
     fatalError("not implemented")
   }
 
