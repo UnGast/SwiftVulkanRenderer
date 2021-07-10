@@ -11,4 +11,9 @@ public struct VulkanFence {
 		vkCreateFence(device, &createInfo, nil, &fence)
 		return fence!
 	}
+
+	public static func waitFor(fence: VkFence, device: VkDevice, timeout: UInt64) {
+		var fences = [Optional(fence)]
+		vkWaitForFences(device, UInt32(fences.count), fences, 1, timeout)
+	}
 }

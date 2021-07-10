@@ -151,7 +151,6 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
   }
 
   func createFramebufferDescriptorSetLayout() throws {
-    var samplers = [Optional(textureSampler)]
     var bindings: [VkDescriptorSetLayoutBinding] = [
       VkDescriptorSetLayoutBinding(
         binding: 0,
@@ -161,65 +160,76 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         pImmutableSamplers: nil
       )
     ]
-    var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
-      sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-      pNext: nil,
-      flags: 0,
-      bindingCount: UInt32(bindings.count),
-      pBindings: bindings
-    )
 
-    var descriptorSetLayout: VkDescriptorSetLayout? = nil
-    vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nil, &descriptorSetLayout)
+    withExtendedLifetime(bindings) {
+      var layoutCreateInfo = VkDescriptorSetLayoutCreateInfo(
+        sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        pNext: nil,
+        flags: 0,
+        bindingCount: UInt32(bindings.count),
+        pBindings: bindings
+      )
 
-    self.framebufferDescriptorSetLayout = descriptorSetLayout!
+      var descriptorSetLayout: VkDescriptorSetLayout? = nil
+      vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nil, &descriptorSetLayout)
+
+      self.framebufferDescriptorSetLayout = descriptorSetLayout!
+    }
   }
 
   func createFramebufferDescriptorSets() throws {
     var setLayouts = Array(repeating: Optional(framebufferDescriptorSetLayout), count: drawTargetImages.count)
-    var allocateInfo = VkDescriptorSetAllocateInfo(
-      sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-      pNext: nil,
-      descriptorPool: descriptorPool,
-      descriptorSetCount: UInt32(drawTargetImages.count),
-      pSetLayouts: setLayouts
-    )
+    var descriptorSets: [VkDescriptorSet?] = withExtendedLifetime(setLayouts) {
+      var allocateInfo = VkDescriptorSetAllocateInfo(
+        sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        pNext: nil,
+        descriptorPool: descriptorPool,
+        descriptorSetCount: UInt32(drawTargetImages.count),
+        pSetLayouts: setLayouts
+      )
 
-    var descriptorSets = [VkDescriptorSet?](repeating: nil, count: drawTargetImages.count)
-    
-    vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSets)
+      var descriptorSets = [VkDescriptorSet?](repeating: nil, count: drawTargetImages.count)
+      
+      vkAllocateDescriptorSets(device, &allocateInfo, &descriptorSets)
+
+      return descriptorSets
+    }
 
     framebufferDescriptorSets = descriptorSets.map { $0! }
 
     //var descriptorWrites = [VkWriteDescriptorSet](repeating: VkWriteDescriptorSet(), count: drawTargetImageViews.count)
-    var imageInfos = [VkDescriptorImageInfo](repeating: VkDescriptorImageInfo(), count: drawTargetImageViews.count)
+    withExtendedLifetime(descriptorSets) {
+      var imageInfos = UnsafeMutableBufferPointer<VkDescriptorImageInfo>.allocate(capacity: drawTargetImageViews.count)//[VkDescriptorImageInfo](repeating: VkDescriptorImageInfo(), count: drawTargetImageViews.count)
 
-    for (index, imageView) in drawTargetImageViews.enumerated() {
-      imageInfos[index] = VkDescriptorImageInfo(
-        sampler: nil,
-        imageView: imageView,
-        imageLayout: VK_IMAGE_LAYOUT_GENERAL
-      )
-    }
+      for (index, imageView) in drawTargetImageViews.enumerated() {
+        imageInfos[index] = VkDescriptorImageInfo(
+          sampler: nil,
+          imageView: imageView,
+          imageLayout: VK_IMAGE_LAYOUT_GENERAL
+        )
+      }
 
-    for index in 0..<drawTargetImageViews.count {
-      var write = VkWriteDescriptorSet(
-        sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        pNext: nil,
-        dstSet: descriptorSets[index],
-        dstBinding: 0,
-        dstArrayElement: 0,
-        descriptorCount: 1,
-        descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        pImageInfo: &imageInfos[index],
-        pBufferInfo: nil,
-        pTexelBufferView: nil
-      )
+      for index in 0..<drawTargetImageViews.count {
+        var write = VkWriteDescriptorSet(
+          sType: VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+          pNext: nil,
+          dstSet: descriptorSets[index],
+          dstBinding: 0,
+          dstArrayElement: 0,
+          descriptorCount: 1,
+          descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+          pImageInfo: UnsafePointer(imageInfos.baseAddress! + index),
+          pBufferInfo: nil,
+          pTexelBufferView: nil
+        )
 
-      // currently need to perform the write here instead of in bulk, because otherwise
-      // there are some memory issues and the write is not executed
-      // correctly for some reason
-      vkUpdateDescriptorSets(device, 1, &write, 0, nil)
+        // currently need to perform the write here instead of in bulk, because otherwise
+        // there are some memory issues and the write is not executed
+        // correctly for some reason
+        vkUpdateDescriptorSets(device, 1, &write, 0, nil)
+      }
+
+      imageInfos.deallocate()
     }
   }
 
@@ -279,19 +289,21 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
   func createSceneDescriptorSet() throws {
     var setLayouts = [Optional(sceneDescriptorSetLayout)]
-    var allocateInfo = VkDescriptorSetAllocateInfo(
-      sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-      pNext: nil,
-      descriptorPool: descriptorPool,
-      descriptorSetCount: 1,
-      pSetLayouts: setLayouts
-    )
+    withExtendedLifetime(setLayouts) {
+      var allocateInfo = VkDescriptorSetAllocateInfo(
+        sType: VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        pNext: nil,
+        descriptorPool: descriptorPool,
+        descriptorSetCount: 1,
+        pSetLayouts: setLayouts
+      )
 
-    var sceneDescriptorSet: VkDescriptorSet? = nil
-    
-    vkAllocateDescriptorSets(device, &allocateInfo, &sceneDescriptorSet)
+      var sceneDescriptorSet: VkDescriptorSet? = nil
+      
+      vkAllocateDescriptorSets(device, &allocateInfo, &sceneDescriptorSet)
 
-    self.sceneDescriptorSet = sceneDescriptorSet!
+      self.sceneDescriptorSet = sceneDescriptorSet!
+    }
 
     var objectGeometryBufferInfo = VkDescriptorBufferInfo(
       buffer: sceneManager.objectGeometryBuffer.buffer,

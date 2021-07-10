@@ -194,7 +194,7 @@ extension VulkanRenderer {
   }
 
   /// ends command buffer and submits it
-  public func endSingleTimeCommands(commandBuffer: VkCommandBuffer, waitSemaphores: [VkSemaphore] = [], signalSemaphores: [VkSemaphore] = []) throws {
+  public func endSingleTimeCommands(commandBuffer: VkCommandBuffer, waitSemaphores: [VkSemaphore] = [], signalSemaphores: [VkSemaphore] = [], fence: VkFence? = nil) throws {
     var waitSemaphores = waitSemaphores as! [VkSemaphore?]
     var signalSemaphores = signalSemaphores as! [VkSemaphore?]
     var submitDstStageMasks = waitSemaphores.map { _ in VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT.rawValue }
@@ -212,6 +212,6 @@ extension VulkanRenderer {
       signalSemaphoreCount: UInt32(signalSemaphores.count),
       pSignalSemaphores: signalSemaphores
     )
-    vkQueueSubmit(queue, 1, &submitInfo, nil)
+    vkQueueSubmit(queue, 1, &submitInfo, fence)
   }
 }
