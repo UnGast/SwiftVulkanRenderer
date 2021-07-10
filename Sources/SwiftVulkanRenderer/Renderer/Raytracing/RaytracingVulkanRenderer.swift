@@ -311,28 +311,28 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
       self.sceneDescriptorSet = sceneDescriptorSet!
     }
 
-    var objectGeometryBufferInfo = VkDescriptorBufferInfo(
+    var objectGeometryBufferInfos = [VkDescriptorBufferInfo(
       buffer: sceneManager.objectGeometryBuffer.buffer,
       offset: 0,
       range: VK_WHOLE_SIZE
-    )
-    var objectDrawInfoBufferInfo = VkDescriptorBufferInfo(
+    )].asUnsafeMutableBufferPointer()
+    var objectDrawInfoBufferInfos = [VkDescriptorBufferInfo(
       buffer: sceneManager.objectDrawInfoBuffer.buffer,
       offset: 0,
       range: VK_WHOLE_SIZE
-    )
-    var materialDrawInfoBufferInfo = VkDescriptorBufferInfo(
+    )].asUnsafeMutableBufferPointer()
+    var materialDrawInfoBufferInfos = [VkDescriptorBufferInfo(
       buffer: materialSystem.materialDataBuffer.buffer,
       offset: 0,
       range: VK_WHOLE_SIZE
-    )
+    )].asUnsafeMutableBufferPointer()
     var textureInfos = materialSystem.materialImages.map {
       VkDescriptorImageInfo(
         sampler: nil,
         imageView: $0.imageView,
         imageLayout: VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
       )
-    }
+    }.asUnsafeMutableBufferPointer()
 
     var descriptorWrites: [VkWriteDescriptorSet] = [
       VkWriteDescriptorSet(
@@ -344,7 +344,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorCount: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
-        pBufferInfo: &objectGeometryBufferInfo,
+        pBufferInfo: UnsafePointer(objectGeometryBufferInfos.baseAddress!),
         pTexelBufferView: nil
       ),
       VkWriteDescriptorSet(
@@ -356,7 +356,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorCount: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
-        pBufferInfo: &objectDrawInfoBufferInfo,
+        pBufferInfo: UnsafePointer(objectDrawInfoBufferInfos.baseAddress!),
         pTexelBufferView: nil
       ),
       VkWriteDescriptorSet(
@@ -368,7 +368,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         descriptorCount: 1,
         descriptorType: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         pImageInfo: nil,
-        pBufferInfo: &materialDrawInfoBufferInfo,
+        pBufferInfo: UnsafePointer(materialDrawInfoBufferInfos.baseAddress!),
         pTexelBufferView: nil
       ),
       VkWriteDescriptorSet(
@@ -379,13 +379,18 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
         dstArrayElement: 0,
         descriptorCount: UInt32(textureInfos.count),
         descriptorType: VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        pImageInfo: &textureInfos,
+        pImageInfo: UnsafePointer(textureInfos.baseAddress!),
         pBufferInfo: nil,
         pTexelBufferView: nil
       )
     ]
 
     vkUpdateDescriptorSets(device, UInt32(descriptorWrites.count), &descriptorWrites, 0, nil)
+
+    objectGeometryBufferInfos.deallocate()
+    objectDrawInfoBufferInfos.deallocate()
+    materialDrawInfoBufferInfos.deallocate()
+    textureInfos.deallocate()
   }
 
   func createComputePipeline() throws {

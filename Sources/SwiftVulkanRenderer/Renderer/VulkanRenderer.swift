@@ -195,23 +195,27 @@ extension VulkanRenderer {
 
   /// ends command buffer and submits it
   public func endSingleTimeCommands(commandBuffer: VkCommandBuffer, waitSemaphores: [VkSemaphore] = [], signalSemaphores: [VkSemaphore] = [], fence: VkFence? = nil) throws {
-    var waitSemaphores = waitSemaphores as! [VkSemaphore?]
-    var signalSemaphores = signalSemaphores as! [VkSemaphore?]
-    var submitDstStageMasks = waitSemaphores.map { _ in VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT.rawValue }
+    var waitSemaphores = (waitSemaphores as! [VkSemaphore?]).asUnsafeMutableBufferPointer()
+    var signalSemaphores = (signalSemaphores as! [VkSemaphore?]).asUnsafeMutableBufferPointer()
+    var submitDstStageMasks = (waitSemaphores.map { _ in VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT.rawValue }).asUnsafeMutableBufferPointer()
     vkEndCommandBuffer(commandBuffer)
 
-    var commandBuffers = [Optional(commandBuffer)]
+    var commandBuffers = [Optional(commandBuffer)].asUnsafeMutableBufferPointer()
     var submitInfo = VkSubmitInfo(
       sType: VK_STRUCTURE_TYPE_SUBMIT_INFO,
       pNext: nil,
       waitSemaphoreCount: UInt32(waitSemaphores.count),
-      pWaitSemaphores: waitSemaphores,
-      pWaitDstStageMask: submitDstStageMasks,
+      pWaitSemaphores: UnsafePointer(waitSemaphores.baseAddress!),
+      pWaitDstStageMask: UnsafePointer(submitDstStageMasks.baseAddress!),
       commandBufferCount: 1,
-      pCommandBuffers: commandBuffers,
+      pCommandBuffers: UnsafePointer(commandBuffers.baseAddress!),
       signalSemaphoreCount: UInt32(signalSemaphores.count),
-      pSignalSemaphores: signalSemaphores
+      pSignalSemaphores: UnsafePointer(signalSemaphores.baseAddress!)
     )
     vkQueueSubmit(queue, 1, &submitInfo, fence)
+    waitSemaphores.deallocate()
+    signalSemaphores.deallocate()
+    submitDstStageMasks.deallocate()
+    commandBuffers.deallocate()
   }
 }
