@@ -48,10 +48,16 @@ extension RaytracingVulkanRenderer {
 
     func syncUpdate() throws {
       var currentExistingMaterialIds: [ObjectIdentifier] = []
+      var needObjectGeometryUpdate: Bool = false
       var needObjectDrawInfoUpdate: Bool = false
 
       for sceneObject in scene.objects {
         currentExistingMaterialIds.append(ObjectIdentifier(sceneObject.material))
+        if !sceneObject.rendererSyncState.mesh {
+          needObjectGeometryUpdate = true
+          needObjectDrawInfoUpdate = true
+          sceneObject.rendererSyncState.mesh = true
+        }
         if !sceneObject.rendererSyncState.material {
           needObjectDrawInfoUpdate = true
         }
@@ -64,6 +70,9 @@ extension RaytracingVulkanRenderer {
           needObjectDrawInfoUpdate = true
         }
       }
+
+      if needObjectGeometryUpdate {
+        try updateObjectGeometryData()      }
 
       if needObjectDrawInfoUpdate {
         try updateObjectDrawInfoData()

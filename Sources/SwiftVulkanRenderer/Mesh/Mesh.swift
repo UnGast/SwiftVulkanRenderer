@@ -1,8 +1,8 @@
 import GfxMath
 
 public class Mesh: Hashable {
-  public var vertices: [Vertex]
-  public var indices: [UInt32]
+  public let vertices: [Vertex]
+  public let indices: [UInt32]
 
   public init(vertices: [Vertex], indices: [UInt32]) {
     self.vertices = vertices

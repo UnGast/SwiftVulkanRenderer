@@ -1,7 +1,11 @@
 import GfxMath
 
 public class SceneObject {
-    public var mesh: Mesh
+    public var mesh: Mesh {
+        didSet {
+            rendererSyncState.mesh = false
+        }
+    }
     public var material: Material {
         didSet {
             rendererSyncState.material = false
@@ -21,5 +25,6 @@ extension SceneObject {
     public struct RendererSynchronizationState {
         /// true means synced, false means out of sync
         var material: Bool = false
+        var mesh: Bool = false
     }
 }
