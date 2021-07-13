@@ -534,7 +534,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
 
     var submitCommandBuffers = [Optional(commandBuffer)]
     var submitWaitSemaphores = self.nextDrawSubmitWaits.map { $0.0 } as! [Optional<VkSemaphore>]
-    var submitDstStageMasks = self.nextDrawSubmitWaits.map { $0.1 }
+    var submitDstStageMasks = self.nextDrawSubmitWaits.map { $0.1 }
     self.nextDrawSubmitWaits = []
 
     var submitSignalSemaphores = currentDrawFinishSemaphoreCallbacks.flatMap { $0() } as! [VkSemaphore?]

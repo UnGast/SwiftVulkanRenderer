@@ -72,15 +72,14 @@ extension RaytracingVulkanRenderer {
       }
 
       if needObjectGeometryUpdate {
-        try updateObjectGeometryData()      }
+        try updateObjectGeometryData()
+      }
 
       if needObjectDrawInfoUpdate {
         try updateObjectDrawInfoData()
       }
       
       try renderer.recreateComputePipeline()
-
-      vkDeviceWaitIdle(renderer.device)
     }
 
     func updateObjectGeometryData() throws {
@@ -103,7 +102,9 @@ extension RaytracingVulkanRenderer {
 
       try objectGeometryBuffer.copy(from: objectGeometryStagingBuffer, srcRange: 0..<(vertices.count * Vertex.serializedSize), dstOffset: 0, commandBuffer: commandBuffer)
 
-      try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
+      let fence = VulkanFence.create(device: renderer.device)
+      try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, fence: fence)
+      VulkanFence.waitFor(fence: fence, device: renderer.device, timeout: UInt64.max)
     }
 
     func updateObjectDrawInfoData() throws {
@@ -129,7 +130,9 @@ extension RaytracingVulkanRenderer {
       print("SIZE", objectDrawInfos.count, ObjectDrawInfo.serializedSize)
       try objectDrawInfoBuffer.copy(from: objectDrawInfoStagingBuffer, srcRange: 0..<(objectDrawInfos.count * ObjectDrawInfo.serializedSize), dstOffset: 0, commandBuffer: commandBuffer)
 
-      try renderer.endSingleTimeCommands(commandBuffer: commandBuffer)
+      let fence = VulkanFence.create(device: renderer.device)
+      try renderer.endSingleTimeCommands(commandBuffer: commandBuffer, fence: fence)
+      VulkanFence.waitFor(fence: fence, device: renderer.device, timeout: UInt64.max)
 
       try renderer.materialSystem.updateGPUData()
     }
