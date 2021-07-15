@@ -47,7 +47,7 @@ layout(push_constant) uniform PushConstants{
   float cameraFov;
   uint objectCount;
 };
-layout(set = 0, binding = 0) uniform writeonly image2D frameImage;
+layout(set = 0, binding = 0, rgba8) uniform writeonly image2D frameImage;
 layout(set = 1, binding = 0) buffer VertexBuffer{
   Vertex vertices[];
 };
