@@ -1,6 +1,6 @@
 import Foundation
 import Dispatch
-import HID
+import FirebladeHID
 import Vulkan
 import GfxMath
 
