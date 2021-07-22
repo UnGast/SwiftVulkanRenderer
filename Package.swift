@@ -23,14 +23,14 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(name: "Swim", url: "https://github.com/t-ae/swim.git", .exact("3.9.0")),
         .package(name: "GfxMath", url: "https://github.com/UnGast/swift-gfx-math.git", .branch("master")),
-        .package(name: "FirebladeHID", path: "../FirebladeHID")
+        .package(name: "FirebladePAL", path: "../FirebladePAL")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "SwiftVulkanRenderer",
-            dependencies: [.product(name: "FirebladeHID", package: "FirebladeHID"), "CTinyObjLoader", "Swim", "GfxMath"],
+            dependencies: [.product(name: "FirebladePAL", package: "FirebladePAL"), "CTinyObjLoader", "Swim", "GfxMath"],
             resources: [
                 .process("Resources")
             ]),

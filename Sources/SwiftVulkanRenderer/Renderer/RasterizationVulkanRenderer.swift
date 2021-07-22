@@ -1,5 +1,5 @@
 import Foundation
-import HID
+import FirebladePAL
 import Vulkan
 
 public class RasterizationVulkanRenderer: VulkanRenderer {

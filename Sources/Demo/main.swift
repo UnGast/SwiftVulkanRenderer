@@ -3,7 +3,7 @@ import Dispatch
 import GfxMath
 import Swim
 import SwiftVulkanRenderer
-
+/*
 let mainMaterial = Material(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 120, g: 50, b: 240, a: 255)))
 let secondMaterial = Material(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
 
@@ -64,4 +64,4 @@ application.beforeFrame = { _ in
 	scene.directionalLight.direction.z = Float(cos(Date.timeIntervalSinceReferenceDate))
 }
 
-try application.run()
+try application.run()*/
