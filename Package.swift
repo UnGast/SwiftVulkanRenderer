@@ -23,7 +23,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(name: "Swim", url: "https://github.com/t-ae/swim.git", .exact("3.9.0")),
         .package(name: "GfxMath", url: "https://github.com/UnGast/swift-gfx-math.git", .branch("master")),
-        .package(name: "FirebladePAL", path: "../FirebladePAL")
+        .package(name: "FirebladePAL", path: "../pal")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.

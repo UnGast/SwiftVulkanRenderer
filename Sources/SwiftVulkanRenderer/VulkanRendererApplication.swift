@@ -369,7 +369,7 @@ public class VulkanRendererApplication<R: VulkanRenderer> {
                 queueFamilyIndex: queueFamilyIndex,
                 queue: queue))
 
-            try renderer?.setupDrawTargets(extent: swapchainExtent, images: swapchainImages, imageViews: swapchainImageViews)
+            try renderer?.setupDrawTargets(extent: swapchainExtent, images: swapchainImages, imageViews: swapchainImageViews, imageFormat: swapchainImageFormat)
             try renderer?.updateSceneContent()
             try renderer?.updateSceneObjectMeta()
             try renderer?.updateSceneCameraUniforms()

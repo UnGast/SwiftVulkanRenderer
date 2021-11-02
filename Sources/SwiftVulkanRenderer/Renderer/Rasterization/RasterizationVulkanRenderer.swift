@@ -6,14 +6,12 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
   public static let drawTargetFormat = VK_FORMAT_B8G8R8A8_SRGB
 
   let scene: Scene
-  let instance: VkInstance
-  let surface: VkSurfaceKHR
 
   @Deferred public var physicalDevice: VkPhysicalDevice
   @Deferred var queueFamilyIndex: UInt32
   @Deferred public var device: VkDevice
   @Deferred public var queue: VkQueue
-  @Deferred var swapchain: VkSwapchainKHR
+
   @Deferred var swapchainImageFormat: VkFormat
   @Deferred public var swapchainExtent: VkExtent2D
   @Deferred var swapchainImages: [VkImage]
@@ -40,24 +38,19 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
   typealias CurrentDrawFinishSemaphoreCallback = () -> [VkSemaphore]
   var currentDrawFinishSemaphoreCallbacks = [CurrentDrawFinishSemaphoreCallback]()
 
-  public init(scene: Scene, instance: VkInstance, surface: VkSurfaceKHR) throws {
+ public init(scene: Scene, config: VulkanRendererConfig) throws {
     self.scene = scene
-    self.instance = instance
-    self.surface = surface
+    self.physicalDevice = config.physicalDevice
+    self.device = config.device
+    self.queueFamilyIndex = config.queueFamilyIndex
+    self.queue = config.queue
+  }
 
-    try pickPhysicalDevice()
-
-    try getQueueFamilyIndex()
-
-    try createDevice()
-
-    try createQueue()
-
-    try createSwapchain()
-
-    try getSwapchainImages()
-
-    try createImageViews()
+  public func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView], imageFormat: VkFormat) throws {
+    self.swapchainExtent = extent
+    self.swapchainImages = images
+    self.imageViews = imageViews
+    self.swapchainImageFormat = imageFormat
 
     try createDepthResources()
 
@@ -81,10 +74,6 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
     try createCommandPool()
   }
 
-  public func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView]) throws {
-    fatalError("not implemented")
-  }
-
 	public func updateSceneContent() throws {
     try sceneManager.updateSceneContent()
   }
@@ -97,182 +86,6 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
     try sceneManager.updateSceneUniform()
   }
 
-  func pickPhysicalDevice() throws {
-    var deviceCount: UInt32 = 0
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nil)
-    var devices = Array(repeating: Optional<VkPhysicalDevice>.none, count: Int(deviceCount))
-    vkEnumeratePhysicalDevices(instance, &deviceCount, &devices)
-    self.physicalDevice = devices[0]!
-  }
-
-  func getQueueFamilyIndex() throws {
-    var queueFamilyCount = UInt32(0)
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nil)
-    var queueFamilyProperties = Array(repeating: VkQueueFamilyProperties(), count: Int(queueFamilyCount))
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, &queueFamilyProperties)
-
-    for (index, properties) in queueFamilyProperties.enumerated() {
-      var supported = UInt32(0)
-      vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, UInt32(index), surface, &supported)
-
-      if supported > 0 {
-        self.queueFamilyIndex = UInt32(index)
-        return
-      }
-    }
-
-    fatalError("no suitable queue family found")
-  }
-
-  func createDevice() throws {
-    var queuePriorities = [Float(1.0)]
-    var queueCreateInfo = VkDeviceQueueCreateInfo(
-      sType: VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      pNext: nil,
-      flags: 0,
-      queueFamilyIndex: queueFamilyIndex,
-      queueCount: 1,
-      pQueuePriorities: queuePriorities)
-
-    var physicalDeviceFeatures = VkPhysicalDeviceFeatures()
-    physicalDeviceFeatures.samplerAnisotropy = 1
-
-    var extensions = [
-      UnsafePointer(strdup("VK_KHR_swapchain")),
-      UnsafePointer(strdup("VK_EXT_descriptor_indexing")),
-      UnsafePointer(strdup("VK_KHR_maintenance3"))
-    ]
-    #if os(macOS)
-    extensions.append(UnsafePointer(strdup("VK_KHR_portability_subset")))
-    #endif
-
-    var features = VkPhysicalDeviceFeatures()
-    features.multiDrawIndirect = 1
-
-    var descriptorIndexingFeatures = VkPhysicalDeviceDescriptorIndexingFeatures()
-    descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES
-    descriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = 1
-    descriptorIndexingFeatures.runtimeDescriptorArray = 1
-
-    var deviceCreateInfo = VkDeviceCreateInfo(
-      sType: VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      pNext: &descriptorIndexingFeatures,
-      flags: 0,
-      queueCreateInfoCount: 1,
-      pQueueCreateInfos: &queueCreateInfo,
-      enabledLayerCount: 0,
-      ppEnabledLayerNames: nil,
-      enabledExtensionCount: UInt32(extensions.count),
-      ppEnabledExtensionNames: extensions,
-      pEnabledFeatures: &features
-    )
-
-    var device: VkDevice? = nil
-    vkCreateDevice(physicalDevice, &deviceCreateInfo, nil, &device)
-    self.device = device!
-  }
-
-  func createQueue() throws {
-    var queues = [VkQueue?](repeating: VkQueue(bitPattern: 0), count: 1)
-    vkGetDeviceQueue(device, UInt32(queueFamilyIndex), 0, &queues)
-    self.queue = queues[0]!
-  }
-
-  func createSwapchain() throws {
-    var capabilities = VkSurfaceCapabilitiesKHR()
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities)
-    let surfaceFormat = try selectFormat()
-
-    var compositeAlpha: VkCompositeAlphaFlagBitsKHR = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR
-    let desiredCompositeAlpha =
-      [compositeAlpha, VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR]
-
-    for desired in desiredCompositeAlpha {
-      if capabilities.supportedCompositeAlpha & desired.rawValue == desired.rawValue {
-        compositeAlpha = desired
-        break
-      }
-    }
-
-    var swapchainCreateInfo = VkSwapchainCreateInfoKHR(
-      sType: VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      pNext: nil,
-      flags: 0,
-      surface: surface,
-      minImageCount: capabilities.minImageCount + 1,
-      imageFormat: surfaceFormat.format,
-      imageColorSpace: surfaceFormat.colorSpace,
-      imageExtent: capabilities.maxImageExtent,
-      imageArrayLayers: 1,
-      imageUsage: VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT.rawValue,
-      imageSharingMode: VK_SHARING_MODE_EXCLUSIVE,
-      queueFamilyIndexCount: 0,
-      pQueueFamilyIndices: [],
-      preTransform: capabilities.currentTransform,
-      compositeAlpha: compositeAlpha,
-      presentMode: VK_PRESENT_MODE_IMMEDIATE_KHR,
-      clipped: 1,
-      oldSwapchain: nil
-    )
-
-    var swapchain: VkSwapchainKHR? = nil
-    vkCreateSwapchainKHR(device, &swapchainCreateInfo, nil, &swapchain)
-    self.swapchain = swapchain!
-    self.swapchainImageFormat = surfaceFormat.format
-    self.swapchainExtent = capabilities.maxImageExtent
-
-    /*self.swapchain = try Swapchain.create(
-      inDevice: device,
-      createInfo: SwapchainCreateInfo(
-        flags: .none,
-        surface: surface,
-        minImageCount: capabilities.minImageCount + 1,
-        imageFormat: surfaceFormat.format,
-        imageColorSpace: surfaceFormat.colorSpace,
-        imageExtent: capabilities.maxImageExtent,
-        imageArrayLayers: 1,
-        imageUsage: .colorAttachment,
-        imageSharingMode: .exclusive,
-        queueFamilyIndices: [],
-        preTransform: capabilities.currentTransform,
-        compositeAlpha: compositeAlpha,
-        presentMode: .immediate,
-        clipped: true,
-        oldSwapchain: nil
-      ))
-
-    self.swapchainImages = try self.swapchain.getSwapchainImages()*/
-  }
-
-  func selectFormat() throws -> VkSurfaceFormatKHR {
-    var formatsCount: UInt32 = 0
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, nil)
-    var formats = Array(repeating: VkSurfaceFormatKHR(), count: Int(formatsCount))
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, &formats)
-
-    for format in formats {
-      if format.format == VK_FORMAT_B8G8R8A8_SRGB {
-        return format
-      }
-    }
-
-    return formats[0]
-  }
-
-  func getSwapchainImages() throws {
-    var count: UInt32 = 0
-    vkGetSwapchainImagesKHR(device, swapchain, &count, nil)
-    var images = [VkImage?](repeating: VkImage(bitPattern: 0), count: Int(count))
-    vkGetSwapchainImagesKHR(device, swapchain, &count, &images)
-    self.swapchainImages = images.map { $0! }
-  }
-
-  func createImageViews() throws {
-    self.imageViews = try swapchainImages.map {
-      try createImageView(image: $0, format: swapchainImageFormat, aspectFlags: VK_IMAGE_ASPECT_COLOR_BIT)
-    }
-  }
-  
   func createDepthResources() throws {
     // TODO: probably depthFormat should be chosen according to support,
     // as shown in tutorial
@@ -893,27 +706,7 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
   }
 
   public func draw(targetIndex: Int, finishFence: VkFence?) throws {
-    fatalError("not implemented")
-  }
-
-  public func draw() throws {
-    var acquireFenceInfo = VkFenceCreateInfo(
-      sType: VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-      pNext: nil,
-      flags: 0
-    )
-    var acquireFence: VkFence? = nil
-    vkCreateFence(device, &acquireFenceInfo, nil, &acquireFence)
-
-    var currentSwapchainImageIndex: UInt32 = 0
-    var acquireResult = vkAcquireNextImageKHR(device, swapchain, 0, nil, acquireFence!, &currentSwapchainImageIndex)
-
-    if acquireResult == VK_ERROR_OUT_OF_DATE_KHR {
-      fatalError("swapchain out of date")
-    }
-
-    var waitFences = [acquireFence]
-    vkWaitForFences(device, 1, waitFences, 1, 10000000)
+    var currentSwapchainImageIndex: UInt32 = UInt32(targetIndex)
 
     let commandBuffer = try recordDrawCommandBuffer(framebufferIndex: Int(currentSwapchainImageIndex))
 
@@ -935,24 +728,7 @@ public class RasterizationVulkanRenderer: VulkanRenderer {
       signalSemaphoreCount: UInt32(submitSignalSemaphores.count),
       pSignalSemaphores: submitSignalSemaphores
     )
-    vkQueueSubmit(queue, 1, &submitInfo, nil)
-
-    vkDeviceWaitIdle(device)
-
-    var presentSwapchains = [Optional(swapchain)]
-    var presentImageIndices = [currentSwapchainImageIndex]
-    var presentResult = VkResult(rawValue: 0)
-    var presentInfo = VkPresentInfoKHR(
-      sType: VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-      pNext: nil,
-      waitSemaphoreCount: 0,
-      pWaitSemaphores: nil,
-      swapchainCount: 1,
-      pSwapchains: presentSwapchains,
-      pImageIndices: presentImageIndices,
-      pResults: &presentResult
-    )
-    vkQueuePresentKHR(queue, &presentInfo)
+    vkQueueSubmit(queue, 1, &submitInfo, finishFence)
   }
 }
 

@@ -51,7 +51,7 @@ public class RaytracingVulkanRenderer: VulkanRenderer {
     sceneManager = try SceneManager(renderer: self)
   } 
 
-  public func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView]) throws {
+  public func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView], imageFormat: VkFormat) throws {
     self.drawTargetExtent = extent
     self.drawTargetImages = images
     self.drawTargetImageViews = imageViews

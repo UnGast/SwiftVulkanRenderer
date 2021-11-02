@@ -9,7 +9,7 @@ public protocol VulkanRenderer {
   var queue: VkQueue { get }
   var commandPool: VkCommandPool { get }
 
-  func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView]) throws
+  func setupDrawTargets(extent: VkExtent2D, images: [VkImage], imageViews: [VkImageView], imageFormat: VkFormat) throws
 
 	func updateSceneContent() throws
 	func updateSceneObjectMeta() throws

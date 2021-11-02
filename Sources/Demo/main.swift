@@ -3,9 +3,9 @@ import Dispatch
 import GfxMath
 import Swim
 import SwiftVulkanRenderer
-/*
-let mainMaterial = Material(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 120, g: 50, b: 240, a: 255)))
-let secondMaterial = Material(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
+
+let mainMaterial = Lambertian(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 120, g: 50, b: 240, a: 255)))
+let secondMaterial = Lambertian(texture: Swim.Image(width: 10, height: 10, color: Swim.Color(r: 220, g: 0, b: 0, a: 255)))
 
 let scene = Scene()
 scene.objects.append(SceneObject(mesh: Mesh.cuboid(), material: mainMaterial, transformationMatrix: .identity))
@@ -30,8 +30,8 @@ scene.objects.append(SceneObject(mesh: Mesh.cylinder(divisionCount: 20), materia
 
 scene.camera.position = FVec3(0, 2, -10)
 
-let application = VulkanRendererApplication(createRenderer: {
-	try RasterizationVulkanRenderer(scene: scene, instance: $0, surface: $1)
+let application = try VulkanRendererApplication(createRenderer: {
+	try RasterizationVulkanRenderer(scene: scene, config: $0)
 }, scene: scene) 
 
 DispatchQueue.global().async {
@@ -64,4 +64,4 @@ application.beforeFrame = { _ in
 	scene.directionalLight.direction.z = Float(cos(Date.timeIntervalSinceReferenceDate))
 }
 
-try application.run()*/
+try application.run()
