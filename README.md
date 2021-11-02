@@ -9,3 +9,5 @@ Currently I can only confirm that it runs on Ubuntu. On MacOS MoltenVK is missin
 `swift run RaytracingDemo` to see a demo rendering in raytracing mode (using compute shaders). Warning: this might freeze your computer (happened to me sometimes). The application will probably crash after some time.
 
 ![demo screenshot](https://github.com/UnGast/SwiftVulkanRenderer/blob/master/screenshot.png)
+
+If it's not working, please open an issue.
