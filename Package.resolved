@@ -11,6 +11,15 @@
         }
       },
       {
+        "package": "FirebladePAL",
+        "repositoryURL": "https://github.com/fireblade-engine/pal",
+        "state": {
+          "branch": "main",
+          "revision": "a3a675d52ce14c0f31ef196745b92df97cfe96d4",
+          "version": null
+        }
+      },
+      {
         "package": "GfxMath",
         "repositoryURL": "https://github.com/UnGast/swift-gfx-math.git",
         "state": {

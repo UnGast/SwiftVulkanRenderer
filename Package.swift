@@ -14,16 +14,18 @@ let package = Package(
             name: "SwiftVulkanRenderer",
             targets: ["SwiftVulkanRenderer"]),
         .executable(
-            name: "Demo",
-            targets: ["Demo"]
-        )
+            name: "RasterizationDemo",
+            targets: ["RasterizationDemo"]),
+        .executable(
+            name: "RaytracingDemo",
+            targets: ["RaytracingDemo"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         .package(name: "Swim", url: "https://github.com/t-ae/swim.git", .exact("3.9.0")),
         .package(name: "GfxMath", url: "https://github.com/UnGast/swift-gfx-math.git", .branch("master")),
-        .package(name: "FirebladePAL", path: "../pal")
+        .package(name: "FirebladePAL", url: "https://github.com/fireblade-engine/pal", .branch("main"))
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -35,7 +37,7 @@ let package = Package(
                 .process("Resources")
             ]),
         .target(
-            name: "Demo",
+            name: "RasterizationDemo",
             dependencies: ["SwiftVulkanRenderer", "GfxMath", "Swim"]
         ),
         .target(
